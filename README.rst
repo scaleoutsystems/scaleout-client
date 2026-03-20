@@ -9,96 +9,62 @@
 .. |pic3| image:: https://readthedocs.org/projects/fedn/badge/?version=latest&style=flat
    :target: https://fedn.readthedocs.io
 
-FEDn: An enterprise-ready federated learning framework 
--------------------------------------------------------
+Scaleout Edge: The platform for sovereign Edge AI orchestration and Federated Learning
+-------------------------------------------------------------------------------------- 
 
-Our goal is to provide a federated learning framework that is both secure, scalable and easy-to-use. We believe that that minimal code change should be needed to progress from early proof-of-concepts to production. This is reflected in our core design: 
+Scaleout Edge helps developers manage the machine learning lifecycle over decentralized edge nodes. 
+Built ground up around the concept of federated learning, the platform goes beyond edge inference by enabling secure, collaborative model training without requiring raw data to ever leave its source.
 
--  **Minimal server-side complexity for the end-user**. Running a proper distributed FL deployment is hard. With FEDn Studio we seek to handle all server-side complexity and provide a UI, REST API and a Python interface to help users manage FL experiments and track metrics in real time.
+Key features include:
 
--  **Secure by design.** FL clients do not need to open any ingress ports. Industry-standard communication protocols (gRPC) and token-based authentication and RBAC (Jason Web Tokens) provides flexible integration in a range of production environments.  
+-  **Edge Model Operations** - Distribute, deploy and manage ML models and code on edge nodes for real-time inference, training and orchestration of ML workloads.
 
--  **ML-framework agnostic**. A black-box client-side architecture lets data scientists interface with their framework of choice. 
+-  **Federated Learning** - Train models collaboratively across multiple edge nodes or data silos without sharing raw data.
+
+-  **Central control over distributed ML workloads** - Manage and orchestrate distributed ML workloads from edge to cloud from a central control plane.
+
+-  **Machine learning framework agnostic**. A flexible SDK lets data scientists build their own clients and integrate with their framework of choice. 
 
 -  **Cloud native.** By following cloud native design principles, we ensure a wide range of deployment options including private cloud and on-premise infrastructure. 
-
--  **Scalability and resilience.** Multiple aggregation servers (combiners) can share the workload. FEDn seamlessly recover from failures in all critical components and manages intermittent client-connections. 
-
--  **Developer and DevOps friendly.** Extensive event logging and distributed tracing enables developers to monitor the sytem in real-time, simplifying troubleshooting and auditing. Extensions and integrations are facilitated by a flexible plug-in architecture.  
-
-FEDn is free forever for academic and personal use / small projects. Sign up for a `FEDn Studio account <https://fedn.scaleoutsystems.com/signup>`__  and take the `Quickstart tutorial <https://fedn.readthedocs.io/en/stable/quickstart.html>`__ to get started with FEDn. 
-
-Features
-=========
-
-Federated learning: 
-
-- Tiered federated learning architecture enabling massive scalability and resilience. 
-- Support for any ML framework (examples for PyTorch, Tensforflow/Keras and Scikit-learn)
-- Extendable via a plug-in architecture (aggregators, load balancers, object storage backends, databases  etc.)
-- Built-in federated algorithms (FedAvg, FedAdam, FedYogi, FedAdaGrad, etc.)
-- UI, CLI and Python API.
-- Implement clients in any language (Python, C++, Kotlin etc.)
-- No open ports needed client-side.
-
-
-From development to FL in production: 
-
--  Secure deployment of server-side / control-plane on Kubernetes.
--  UI with dashboards for orchestrating FL experiments and for visualizing results
--  Team features - collaborate with other users in shared project workspaces. 
--  Features for the trusted-third party: Manage access to the FL network, FL clients and training progress.
--  REST API for handling experiments/jobs. 
--  View and export logging and tracing information. 
--  Public cloud, dedicated cloud and on-premise deployment options.
-
-Available client APIs:
-
-- Python client (this repository)
-- C++ client (`FEDn C++ client <https://github.com/scaleoutsystems/fedn-cpp-client>`__)
-- Android Kotlin client (`FEDn Kotlin client <https://github.com/scaleoutsystems/fedn-android-client>`__)
-
 
 Getting started
 ============================
 
-Get started with FEDn in two steps:  
+Get started with Scaleout Edge in two steps:  
 
-1. Register for a `FEDn Studio account <https://fedn.scaleoutsystems.com/signup>`__
-2. Take the `Quickstart tutorial <https://fedn.readthedocs.io/en/stable/quickstart.html>`__
-
-Use of our multi-tenant, managed deployment of FEDn Studio (SaaS) is free forever for academic research and personal development/testing purposes.
-For users and teams requiring additional resources, more storage and cpu, dedicated support, and other hosting options (private cloud, on-premise), `explore our plans <https://www.scaleoutsystems.com/start#pricing>`__.  
+1. Register for platform access at `Scaleout Edge Account <https://www.scaleoutsystems.com/pricing>`__
+2. Take the `Quickstart tutorial <https://docs.scaleoutsystems.com/en/stable/quickstart.html>`__
 
 Documentation
 =============
 
-More details about the architecture, deployment, and how to develop your own application and framework extensions are found in the documentation:
+More details about the architecture, deployment, and how to develop your own applications are found in the documentation:
 
 -  `Documentation <https://fedn.readthedocs.io>`__
 
-FEDn Project Examples
+Examples
 =====================
 
-Our example projects demonstrate different use case scenarios of FEDn 
+Our example projects demonstrate different use case scenarios of Scaleout Edge 
 and its integration with popular machine learning frameworks like PyTorch and TensorFlow.
 
-- `FEDn + PyTorch <https://github.com/scaleoutsystems/fedn/tree/master/examples/mnist-pytorch>`__
-- `FEDn + Tensforflow/Keras <https://github.com/scaleoutsystems/fedn/tree/master/examples/mnist-keras>`__
-- `FEDn + MONAI <https://github.com/scaleoutsystems/fedn/tree/master/examples/monai-2D-mednist>`__
-- `FEDn + Hugging Face <https://github.com/scaleoutsystems/fedn/tree/master/examples/huggingface>`__
-- `FEDn + Flower <https://github.com/scaleoutsystems/fedn/tree/master/examples/flower-client>`__
-- `FEDN + Self-supervised learning <https://github.com/scaleoutsystems/fedn/tree/master/examples/FedSimSiam>`__
+- `Using the Python SDK <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/api-tutorials>`__
+- `Federated Learning with PyTorch <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/mnist-pytorch>`__
+- `Federated Learning with Tensforflow/Keras <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/mnist-keras>`__
+- `Federated Learning with Hugging Face <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/huggingface>`__
+- `Federated Learning with Self-supervised Learning <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/FedSimSiam>`__
+- `Federated Learning + Differential Privacy <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/mnist-pytorch-DPSGD>`__
 
-FEDn Studio Deployment options
-==============================
 
-Several hosting options are available to suit different project settings.
+Scaleout Edge Deployment Options
+=================================
 
--  `Public cloud (multi-tenant) <https://fedn.scaleoutsystems.com>`__: Managed multi-tenant deployment in public cloud. 
+Several deployment and hosting options are available to suit different project requirements.
+
 -   Dedicated cloud (single-tenant): Managed, dedicated deployment in a cloud region of your choice (AWS, GCP, Azure, managed Kubernetes) 
 -   Self-managed: Set up a self-managed deployment in your VPC or on-premise Kubernets cluster using Helm Chart and container images provided by Scaleout. 
 
+For both hosted and self-managed deployments, tooling is availabale for all-in-one docker-compose deployments (starter/sandbox) and for production-grade deployments on Kubernetes.
 Contact the Scaleout team for information.
 
 Support
@@ -114,12 +80,24 @@ Making contributions
 
 All pull requests will be considered and are much appreciated. For
 more details please refer to our `contribution
-guidelines <https://github.com/scaleoutsystems/fedn/blob/master/CONTRIBUTING.md>`__.
+guidelines <https://github.com/scaleoutsystems/scaleout-client/blob/master/CONTRIBUTING.md>`__.
 
-Citation
-========
+Relationship to Scaleout FEDn
+=============================
 
-If you use FEDn in your research, please cite:
+Scaleout Edge is an evolution of FEDn, the federated learning framework that Scaleout has been developing since 2019. FEDn now forms the federated learning engine
+in Scaleout Edge. Core federated learning features include:
+
+- Tiered federated learning architecture enabling massive scalability and resilience. 
+- Support for any ML framework (examples for PyTorch, Tensforflow/Keras and Scikit-learn)
+- Extendable via a plug-in architecture (aggregators, load balancers, object storage backends, databases  etc.)
+- Built-in federated algorithms (FedAvg, FedAdam, FedYogi, FedAdaGrad, etc.)
+- UI, CLI and Python API.
+- Implement clients in any language (Python, C++, Kotlin etc.)
+- No open ports needed client-side.
+
+
+If you use Scaleout Edge for federated learning in your academic research, please consider citing:
 
 ::
 
@@ -134,7 +112,7 @@ If you use FEDn in your research, please cite:
 License
 =======
 
-FEDn is licensed under Apache-2.0 (see `LICENSE <LICENSE>`__ file for
+The Scaleout Edge SDK (this repository) is licensed under Apache-2.0 (see `LICENSE <LICENSE>`__ file for
 full information).
 
-Use of FEDn Studio is subject to the `Terms of Use <https://www.scaleoutsystems.com/terms>`__.
+Use of the Scaleout Edge platform is subject to the `Terms of Use <https://www.scaleoutsystems.com/terms>`__, see the Master Software License Agreement (MSLA) for full details.
