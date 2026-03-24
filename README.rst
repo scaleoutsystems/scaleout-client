@@ -52,8 +52,8 @@ and its integration with popular machine learning frameworks like PyTorch and Te
 - `Using the Python SDK <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/api-tutorials>`__
 - `Federated Learning with PyTorch <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/mnist-pytorch>`__
 - `Federated Learning with Tensforflow/Keras <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/mnist-keras>`__
-- `Federated Learning with Hugging Face <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/huggingface>`__
-- `Federated Learning with Self-supervised Learning <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/FedSimSiam>`__
+- `Federated Learning with Hugging Face (Transformers) <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/huggingface>`__
+- `Federated Learning with self-supervised Learning <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/FedSimSiam>`__
 - `Federated Learning + Differential Privacy <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/mnist-pytorch-DPSGD>`__
 
 
