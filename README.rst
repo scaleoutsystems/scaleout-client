@@ -62,10 +62,10 @@ Deployment Options
 
 Several deployment and hosting options are available to suit different project requirements.
 
--   Dedicated cloud (single-tenant): Managed, dedicated deployment in a cloud region of your choice (AWS, GCP, Azure, managed Kubernetes) 
--   Self-managed: Set up a self-managed deployment in your VPC or on-premise Kubernets cluster using Helm Chart and container images provided by Scaleout. 
+-   Dedicated cloud (single-tenant): Scaleout managed, dedicated deployment in a supported cloud VPC of your choice (GCP, Azure, OCI, AWS, Managed Kubernetes) 
+-   Sovereign / self-managed: Deploy in your own VPC or on-premise Kubernets cluster using Scaleout's provided container images. 
 
-For both hosted and self-managed deployments, tooling is availabale for all-in-one docker-compose deployments (starter/sandbox) and for production-grade deployments on Kubernetes.
+For both hosted and self-managed deployments, tooling is availabale for all-in-one docker-compose deployments (starter/sandbox, single VM/host) and for scaling production deployments on Kubernetes.
 Contact the Scaleout team for information.
 
 Support
@@ -74,7 +74,7 @@ Support
 Community support is available in our `Discord
 server <https://discord.gg/KMg4VwszAd>`__.
 
-Options are available for `Dedicated/custom support <https://www.scaleoutsystems.com/start#pricing>`__.
+Options are available for `Dedicated support <https://www.scaleoutsystems.com/start#pricing>`__.
 
 Making contributions
 ====================
@@ -86,7 +86,7 @@ guidelines <https://github.com/scaleoutsystems/scaleout-client/blob/master/CONTR
 Relationship to Scaleout FEDn
 =============================
 
-Scaleout Edge is an evolution of FEDn, the federated learning framework that Scaleout has been developing since 2019. FEDn now forms the federated learning engine
+Scaleout Edge is the evolution of FEDn, the federated learning framework that Scaleout has been developing since 2019. FEDn now forms the federated learning engine
 in Scaleout Edge. Core federated learning features include:
 
 - Tiered federated learning architecture enabling massive scalability and resilience. 
