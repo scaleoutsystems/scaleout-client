@@ -9,7 +9,7 @@
 .. |pic3| image:: https://readthedocs.org/projects/fedn/badge/?version=latest&style=flat
    :target: https://fedn.readthedocs.io
 
-Scaleout Edge: The platform for sovereign Edge AI orchestration and Federated Learning
+Scaleout Edge: Sovereign Edge AI orchestration and Federated Learning
 -------------------------------------------------------------------------------------- 
 
 Scaleout Edge helps AI developers manage the machine learning lifecycle over distributed edge nodes and data silos. From a central control plane, operators can securely distribute models to edge nodes, monitor model metrics and telemetry on edge, fine tune models for local environments, and collaboratively train models over fleets of nodes.  
