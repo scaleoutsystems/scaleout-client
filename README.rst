@@ -57,7 +57,7 @@ and its integration with popular machine learning frameworks like PyTorch and Te
 - `Federated Learning + Differential Privacy <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/mnist-pytorch-DPSGD>`__
 
 
-Scaleout Edge Deployment Options
+Deployment Options
 =================================
 
 Several deployment and hosting options are available to suit different project requirements.
