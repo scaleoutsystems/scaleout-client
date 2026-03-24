@@ -12,20 +12,21 @@
 Scaleout Edge: The platform for sovereign Edge AI orchestration and Federated Learning
 -------------------------------------------------------------------------------------- 
 
-Scaleout Edge helps developers manage the machine learning lifecycle over decentralized edge nodes. 
-Built ground up around the concept of federated learning, the platform goes beyond edge inference by enabling secure, collaborative model training without requiring raw data to ever leave its source.
+Scaleout Edge helps AI developers manage the machine learning lifecycle over distributed edge nodes and data silos. From a central control plane, operators can securely distribute models to edge nodes, monitor model metrics and telemetry on edge, fine tune models for local environments, and collaboratively train models over fleets of nodes.  
+
+Built ground up around the concept of federated learning, the platform goes beyond edge inference by enabling secure, collaborative model training without requiring raw data to ever leave its source. This allows for scaling data access for machine learning over large volumes of sensitive data at the edge, and for speeding up the modeling loop by enabling adaptive AI and human-in-the-loop workflows.  
 
 Key features include:
 
--  **Edge Model Operations** - Distribute, deploy and manage ML models and code on edge nodes for real-time inference, training and orchestration of ML workloads.
+-  **Edge Model Operations** - Distribute, deploy and manage ML models and ML code on edge nodes for real-time inference, training and orchestration of ML workloads.
 
 -  **Federated Learning** - Train models collaboratively across multiple edge nodes or data silos without sharing raw data.
 
 -  **Central control over distributed ML workloads** - Manage and orchestrate distributed ML workloads from edge to cloud from a central control plane.
 
--  **Machine learning framework agnostic**. A flexible SDK lets data scientists build their own clients and integrate with their framework of choice. 
+-  **Machine learning framework agnostic**. A flexible SDK (this repository) lets data scientists build their own clients and integrate with their ML framework of choice. 
 
--  **Cloud native.** By following cloud native design principles, we ensure a wide range of deployment options including private cloud and on-premise infrastructure. 
+-  **Infrastructure vendor-agnostic.** We ensure a wide range of deployment options including private cloud and on-premise infrastructure, and enable interfaces to leading cloud native software stacks. 
 
 Getting started
 ============================
