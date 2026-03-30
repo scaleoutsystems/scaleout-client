@@ -1,13 +1,7 @@
-|pic1| |pic2| |pic3|
-
-.. |pic1| image:: https://github.com/scaleoutsystems/fedn/actions/workflows/integration-tests.yaml/badge.svg
-   :target: https://github.com/scaleoutsystems/fedn/actions/workflows/integration-tests.yaml
+|pic2|
 
 .. |pic2| image:: https://badgen.net/badge/icon/discord?icon=discord&label
    :target: https://discord.gg/KMg4VwszAd
-
-.. |pic3| image:: https://readthedocs.org/projects/fedn/badge/?version=latest&style=flat
-   :target: https://fedn.readthedocs.io
 
 Scaleout Edge: Sovereign Edge AI orchestration and Federated Learning
 -------------------------------------------------------------------------------------- 
@@ -41,7 +35,7 @@ Documentation
 
 More details about the architecture, deployment, and how to develop your own applications are found in the documentation:
 
--  `Documentation <https://fedn.readthedocs.io>`__
+-  `Documentation <https://docs.scaleoutsystems.com/en/stable>`__
 
 Examples
 =====================
