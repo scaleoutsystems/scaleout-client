@@ -24,9 +24,36 @@ def perform_chunked_upload(base_url: str, token: str, file_path: str, headers: d
 
     file_name = os.path.basename(file_path)
     file_size = os.path.getsize(file_path)
-    chunk_size = 5 * 1024 * 1024  # Upload chunks of 5MB
 
-    click.secho(f"Initializing chunked upload for {file_name} ({file_size} bytes)", fg="cyan")
+    # Initial chunk size: 900 KB (fits in nginx 1 MB default)
+    current_chunk_size = 900 * 1024
+    min_chunk_size = 256 * 1024
+
+    while True:
+        try:
+            return _do_chunked_upload(base_url, token, file_path, headers, file_name, file_size, current_chunk_size)
+        except requests.exceptions.HTTPError as e:
+            if getattr(e, "response", None) is not None and e.response.status_code == 413:
+                next_size = current_chunk_size // 2
+                if next_size < min_chunk_size:
+                    click.secho(f"\nUpload failed: proxy rejects all supported chunk sizes (minimum {min_chunk_size // 1024} KB).", fg="red")
+                    sys.exit(1)
+                click.secho(f"\nProxy rejected chunk size (413). Retrying with {next_size // 1024} KB chunks...", fg="yellow")
+                current_chunk_size = next_size
+                continue
+            # Non-413 HTTP errors: report and exit
+            click.secho(f"Upload failed: {e}", fg="red")
+            if getattr(e, "response", None) is not None:
+                click.secho(f"Details: {e.response.text}", fg="red")
+            sys.exit(1)
+        except requests.exceptions.RequestException as e:
+            # Other request errors: report and exit
+            click.secho(f"Upload failed: {e}", fg="red")
+            sys.exit(1)
+
+
+def _do_chunked_upload(base_url: str, token: str, file_path: str, headers: dict, file_name: str, file_size: int, chunk_size: int) -> str:
+    click.secho(f"Initializing chunked upload for {file_name} ({file_size} bytes, {chunk_size // 1024} KB chunks)", fg="cyan")
 
     # 1. Initialize Upload
     init_url = get_api_url(base_url, "file-upload/init")
@@ -61,6 +88,14 @@ def perform_chunked_upload(base_url: str, token: str, file_path: str, headers: d
             try:
                 chunk_resp = requests.post(chunk_url, data=chunk_data, headers=chunk_headers, verify=False)
                 chunk_resp.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                # If 413, bubble up to trigger resize
+                if e.response.status_code == 413:
+                    # Best effort: abort the session
+                    abort_url = get_api_url(base_url, f"file-upload/{upload_id}/abort")
+                    requests.post(abort_url, headers=headers, verify=False)
+                    raise e
+                raise e
             except requests.exceptions.RequestException as e:
                 click.secho(f"\nFailed to upload chunk {chunk_index}: {e}", fg="red")
                 if getattr(e, "response", None) is not None:

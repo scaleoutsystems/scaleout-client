@@ -5,7 +5,7 @@ sends requests to the combiner to receive model updates and send model updates.
 # ruff: noqa: E501
 
 from scaleout.client.edge_client import EdgeClient
-from scaleoututil.api.client import APIClient
+from scaleoututil.api.client import Scaleout
 from scaleoututil.utils.model import ScaleoutModel
 
-__all__ = ["APIClient", "EdgeClient", "ScaleoutModel"]
+__all__ = ["Scaleout", "EdgeClient", "ScaleoutModel"]

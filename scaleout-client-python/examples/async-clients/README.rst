@@ -6,28 +6,28 @@ This example shows how to experiment with intermittent and asynchronous client w
 Prerequisites
 -------------
 
-- [Python 3.8, 3.9 or 3.10](https://www.python.org/downloads)
+- [Python 3.11, 3.12 or 3.13](https://www.python.org/downloads)
 - [Docker (if running locally)](https://docs.docker.com/get-docker)
 - [Docker Compose (if running locally)](https://docs.docker.com/compose/install)
 
 Set up environment
 ------------------
 
-First, make sure that FEDn is installed (we recommend using a virtual environment)
+First, make sure that Scaleout is installed (we recommend using a virtual environment)
 
-Clone FEDn
-
-.. code-block::
-
-    git clone https://github.com/scaleoutsystems/scaleout.git
-
-Install FEDn
+Clone Scaleout
 
 .. code-block::
 
-    pip install fedn
+    git clone https://github.com/scaleoutsystems/scaleout-client.git
 
-Standing in the folder fedn/examples/async-clients
+Install Scaleout
+
+.. code-block::
+
+    pip install scaleout
+
+Standing in the folder scaleout-client/scaleout-client-python/examples/async-clients
 
 .. code-block::
 
@@ -43,7 +43,7 @@ Create the seed model
     python init_seed.py
 
 
-You will now have a file 'seed.npz' in the directory. Add this seed model to the FEDn instance:
+You will now have a file 'seed.npz' in the directory. Add this seed model to the Scaleout instance:
 
 .. code-block::
 
@@ -52,11 +52,11 @@ You will now have a file 'seed.npz' in the directory. Add this seed model to the
 Project configuration
 ------------
 
-The file ``config.py`` contains all configuration settings for this example. The most important setting is ``USE_LOCAL`` which determines whether to run with a local FEDn deployment or connect to a remote instance such as a Studio instance project.
+The file ``config.py`` contains all configuration settings for this example. The most important setting is ``USE_LOCAL`` which determines whether to run with a local Scaleout deployment or connect to a remote instance such as a Studio instance project.
 
 **For local deployment:**
 - Set ``USE_LOCAL = True`` in ``config.py``
-- Deploy FEDn locally using Docker Compose. Standing in the FEDn root directory:
+- Deploy Scaleout locally using Docker Compose. Standing in the Scaleout root directory:
 
 .. code-block::
 
@@ -107,7 +107,7 @@ Start the experiment / training sessions:
 
     python run_experiment.py
 
-You can adjust the number of sequential training sessions by modifying the ``N_SESSIONS`` parameter in ``config.py``. If you are using Scaleout Studio, you can also start a session directly through the Studio interface or use the APIClient.
+You can adjust the number of sequential training sessions by modifying the ``N_SESSIONS`` parameter in ``config.py``. If you are using Scaleout Studio, you can also start a session directly through the Studio interface or use the Scaleout.
 
 To analyze client participation and identify potential issues after a session has started:
 

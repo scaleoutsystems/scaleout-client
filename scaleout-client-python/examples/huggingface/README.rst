@@ -13,7 +13,7 @@ In this example, the Enron email spam dataset is split among two clients. The BE
 federated learning to predict whether an email is spam or not.
 
 The user interface visualizes the training progress by plotting test loss and accuracy, as shown in the plot below. 
-After running the example for only a few rounds in FEDn studio, the BERT-tiny model - fine-tuned via federated learning - 
+After running the example for only a few rounds in Scaleout Edge, the BERT-tiny model - fine-tuned via federated learning - 
 is able to detect spam emails on the test dataset with high accuracy. 
 
 .. image:: figs/hf_figure.png
@@ -24,7 +24,7 @@ To run the example, follow the steps below. For a more detailed explanation, fol
 Prerequisites
 -------------
 
--  `Python >=3.9, <=3.12 <https://www.python.org/downloads>`__
+-  `Python >=3.11, <3.14 <https://www.python.org/downloads>`__
 -  `A Scaleout Edge deployment  
 
 Creating the compute package and seed model
@@ -34,11 +34,19 @@ Install scaleout:
 
 .. code-block::
 
-   git clone https://github.com/scaleoutsystems/scaleout.git
-   cd scaleout/scaleout-client-python/examples/huggingface
+   git clone https://github.com/scaleoutsystems/scaleout-client.git
+   cd scaleout-client/scaleout-client-python/examples/huggingface
    python -m venv .venv
    source .venv/bin/activate
    pip install scaleout
+
+Login to Scaleout Edge:
+
+Before running any commands, login to your Scaleout Edge instance:
+
+.. code-block::
+
+   scaleout login <URL>
 
 Create the compute package:
 

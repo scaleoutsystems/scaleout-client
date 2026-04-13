@@ -11,12 +11,12 @@ Additionally, for large-scale experiments, ``sf_incremental_aggregation.py`` dem
 **memory-safe incremental averaging** using server functions.
 
 For details on the functionality of server-functions see either the file server_functions.py, 
-the docs https://docs.scaleoutsystems.com/en/stable/serverfunctions.html or the youtube video 
+the docs https://docs.scaleoutsystems.com/en/latest/serverfunctions.html or the youtube video 
 https://www.youtube.com/watch?v=Rnfhfqy_Tts.
 
-To apply server-functionality in Scaleout Edge first connect to your project through the APIClient.
+To apply server-functionality in Scaleout Edge first connect to your project through the Scaleout.
 
-See https://docs.scaleoutsystems.com/en/stable/apiclient.html for more information.
+See https://docs.scaleoutsystems.com/en/latest/apiclient.html for more information.
 
 When connected to the project API you can start sessions with your supplied server functions.
 
@@ -28,12 +28,12 @@ Get your token from the settings page in your Scaleout project and add it in you
 
     export SCALEOUT_AUTH_TOKEN=<access token>
 
-Connect through the APIClient from a python instance, you can find your controller host on the Scaleout Dashboard page.
+Connect through the Scaleout from a python instance, you can find your controller host on the Scaleout Dashboard page.
 
 .. code-block::
 
-    from scaleout import APIClient
-    client = APIClient(host="<controller-host>", secure=True, verify=True)
+    from scaleout import Scaleout
+    client = Scaleout(host="<controller-host>", secure=True, verify=True)
 
 Start a session with your ServerFunctions code (assuming you have uploaded a model seed, compute package and have connected clients).
 

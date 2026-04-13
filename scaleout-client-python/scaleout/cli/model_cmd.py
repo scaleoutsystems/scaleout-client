@@ -41,8 +41,6 @@ def list_models(ctx, protocol: str, host: str, port: str, token: str = None, ses
     if session_id:
         query["session_id"] = session_id
 
-    click.echo(f"Fetching models from {base_url}... token {token}")
-
     response = get_response(base_url=base_url, endpoint="models/", query=query, token=token, headers=headers)
     return process_response(response, "models", output_format=output_format, base_url=base_url)
 

@@ -6,7 +6,7 @@ The Scaleout Edge Client is a Python package that provides the necessary tools a
 Getting Started
 ===============
 
-Please refer to the `Quickstart Guide <https://scaleout-scaleout.readthedocs-hosted.com/en/latest/quickstart.html>`__ for a step-by-step introduction to using the Scaleout Edge Client.
+Please refer to the `Quickstart Guide <https://docs.scaleoutsystems.com/en/latest/quickstart.html>`__ for a step-by-step introduction to using the Scaleout Edge Client.
 
 Support
 =======
@@ -34,7 +34,7 @@ If you use Scaleout Edge in your research, please cite:
 License
 =======
 
-Scaleout Edge python client is licensed under Apache-2.0 (see `LICENSE <LICENSE>`__ file for
+Scaleout Edge python client is licensed under Apache-2.0 (see `LICENSE <https://github.com/scaleoutsystems/scaleout-client/blob/main/scaleout-client-python/LICENSE>`__ file for
 full information).
 
 Use of Scaleout Edge Studio is subject to the `Terms of Use <https://www.scaleoutsystems.com/terms>`__.

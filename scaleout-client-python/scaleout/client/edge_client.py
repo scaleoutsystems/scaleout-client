@@ -135,8 +135,9 @@ class EdgeClient:
 
     def _init_token_manager(self, token: str, url: str, token_refresh_callback: Optional[Callable[[str, str, datetime], None]] = None) -> None:
         """Initialize the token manager with the provided token."""
-        token_endpoint = assemble_endpoint_url(url, "api/auth", "refresh")
-        self.token_manager = TokenManager(refresh_token=token, token_endpoint=token_endpoint, on_token_refresh=token_refresh_callback)
+        if self.token_manager is None:
+            token_endpoint = assemble_endpoint_url(url, "api/auth", "refresh")
+            self.token_manager = TokenManager(refresh_token=token, token_endpoint=token_endpoint, on_token_refresh=token_refresh_callback)
 
     def connect_to_api(
         self, url: str, json: dict = None, token: Optional[str] = None, token_refresh_callback: Optional[Callable[[str, str, datetime], None]] = None

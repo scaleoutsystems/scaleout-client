@@ -1,8 +1,0 @@
-name: .load-test
-build_dependencies:
-  - pip
-  - setuptools
-  - wheel
-dependencies:
-  - fedn
-  - numpy

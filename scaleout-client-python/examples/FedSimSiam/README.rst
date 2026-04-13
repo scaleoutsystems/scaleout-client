@@ -7,7 +7,7 @@ In short, FedSimSiam trains an encoder to learn useful feature embeddings for im
 After the self-supervised training stage, the resulting encoder can be downloaded and trained for a downstream task (e.g., image classification) via supervised learning on labeled data.
 To learn more about self-supervised learning and FedSimSiam, have a look at our blog-post: https://www.scaleoutsystems.com/post/federated-self-supervised-learning-and-autonomous-driving
 
-To run the example, follow the steps below. For a more detailed explanation, follow the Quickstart Tutorial: https://scaleout.readthedocs.io/en/stable/quickstart.html
+To run the example, follow the steps below. For a more detailed explanation, follow the Quickstart Tutorial: https://docs.scaleoutsystems.com/en/latest/quickstart.html
 
 **Note: To be able to run this example, you need to have GPU access.**
 
@@ -20,7 +20,7 @@ Prerequisites
 Creating the compute package and seed model
 -------------------------------------------
 
-Install fedn: 
+Install Scaleout: 
 
 .. code-block::
 
@@ -30,11 +30,19 @@ Clone this repository, then locate into this directory:
 
 .. code-block::
 
-   git clone https://github.com/scaleoutsystems/scaleout.git
-   cd scaleout/scaleout-client-python/examples/FedSimSiam
+   git clone https://github.com/scaleoutsystems/scaleout-client.git
+   cd scaleout-client/scaleout-client-python/examples/FedSimSiam
    python -m venv .venv
    source .venv/bin/activate
    pip install scaleout
+
+Login to Scaleout Edge:
+
+Before running any commands, login to your Scaleout Edge instance:
+
+.. code-block::
+
+   scaleout login <URL>
 
 Create the compute package:
 
@@ -55,7 +63,7 @@ This will create a model file 'seed.npz' in the root of the project. This step w
 
 Follow the documentation in order to learn how to connect clients and run the training yourself. 
 
-When running the example in FEDn Studio, you can follow the training progress of FedSimSiam under 'Models'. 
+When running the example in Scaleout Edge, you can follow the training progress of FedSimSiam under 'Models'. 
 After each training round, a kNN classifier is fitted to the feature embeddings of the training images obtained 
 by FedSimSiam's encoder and evaluated on the feature embeddings of the test images. 
 This is a common method to track FedSimSiam's training progress, 

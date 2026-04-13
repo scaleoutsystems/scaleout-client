@@ -6,4 +6,4 @@ build_dependencies:
 dependencies:
   - tensorflow-macos
   - tensorflow-metal
-  - fedn
+  - scaleout

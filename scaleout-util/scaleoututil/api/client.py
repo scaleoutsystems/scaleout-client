@@ -2,7 +2,7 @@ import inspect
 import os
 import re
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 import uuid
 
 import requests
@@ -14,8 +14,8 @@ from scaleoututil.serverfunctions.serverfunctionsbase import ServerFunctionsBase
 from scaleoututil.utils.url import parse_url
 
 
-class APIClient:
-    """An API client for interacting with the statestore and controller.
+class Scaleout:
+    """Python client for interacting with the statestore and controller.
 
     :param host: The host of the api server.
     :type host: str
@@ -36,8 +36,9 @@ class APIClient:
         token: str = None,
         auth_scheme: str = None,
         token_endpoint: str = None,
+        access_token_provider: Optional[Callable[[], Optional[str]]] = None,
     ):
-        """Initialize the API client.
+        """Initialize the Scaleout client.
 
         :param host: The host of the api server.
         :type host: str
@@ -83,6 +84,7 @@ class APIClient:
         self.port = port
         self.secure = secure
         self.verify = verify
+        self.access_token_provider = access_token_provider
         self.auth_scheme = auth_scheme or os.environ.get("SCALEOUT_AUTH_SCHEME", "Bearer")
         self.token_manager: Optional[TokenManager] = None
         self.headers = {}
@@ -156,7 +158,12 @@ class APIClient:
         :return: Headers dictionary with Authorization header.
         :rtype: dict
         """
-        if self.token_manager:
+        if self.access_token_provider:
+            tok = self.access_token_provider()
+            headers = {}
+            if tok:
+                headers["Authorization"] = f"{self.auth_scheme} {tok}"
+        elif self.token_manager:
             # Get fresh token from TokenManager (will auto-refresh if needed)
             headers = self.token_manager.get_auth_header()
         else:
@@ -168,6 +175,83 @@ class APIClient:
             headers.update(additional_headers)
 
         return headers
+
+    def _perform_chunked_upload(self, file_path: str) -> str:
+        """Uploads a file in chunks and returns a file_token."""
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Upload failed: File not found ({file_path})")
+
+        file_name = os.path.basename(file_path)
+        file_size = os.path.getsize(file_path)
+
+        current_chunk_size = 900 * 1024  # Default chunk size to start from
+        min_chunk_size = 256 * 1024  # Minimum chunk size when to give up
+
+        while True:
+            try:
+                return self._do_chunked_upload(file_path, file_name, file_size, current_chunk_size)
+            except requests.exceptions.HTTPError as e:
+                if getattr(e, "response", None) is not None and e.response.status_code == 413:
+                    next_size = current_chunk_size // 2
+                    if next_size < min_chunk_size:
+                        raise RuntimeError(f"Upload failed: proxy rejects all supported chunk sizes (minimum {min_chunk_size // 1024} KB).")
+                    ScaleoutLogger().warning(f"Proxy rejected chunk size (413). Retrying with {next_size // 1024} KB chunks...")
+                    current_chunk_size = next_size
+                    continue
+                raise
+
+    def _do_chunked_upload(self, file_path: str, file_name: str, file_size: int, chunk_size: int) -> str:
+        headers = self._get_headers()
+
+        # 1. Initialize Upload
+        init_url = self._get_url_api_v1("file-upload/init")
+        init_response = requests.post(
+            init_url,
+            json={"file_name": file_name, "file_size": file_size, "chunk_size": chunk_size},
+            headers=headers,
+            verify=self.verify,
+        )
+        init_response.raise_for_status()
+
+        upload_id = init_response.json().get("upload_id")
+        if not upload_id:
+            raise RuntimeError("Failed to receive an upload_id from the backend")
+
+        # 2. Upload Chunks
+        chunk_url = self._get_url_api_v1(f"file-upload/{upload_id}/chunk")
+
+        with open(file_path, "rb") as f:
+            chunk_index = 0
+            while True:
+                chunk_data = f.read(chunk_size)
+                if not chunk_data:
+                    break
+
+                chunk_headers = headers.copy()
+                chunk_headers["X-Chunk-Index"] = str(chunk_index)
+
+                try:
+                    chunk_resp = requests.post(chunk_url, data=chunk_data, headers=chunk_headers, verify=self.verify)
+                    chunk_resp.raise_for_status()
+                except requests.exceptions.HTTPError as e:
+                    if getattr(e, "response", None) is not None and e.response.status_code == 413:
+                        abort_url = self._get_url_api_v1(f"file-upload/{upload_id}/abort")
+                        requests.post(abort_url, headers=headers, verify=self.verify)
+                    raise
+
+                chunk_index += 1
+
+        # 3. Complete Upload
+        complete_url = self._get_url_api_v1(f"file-upload/{upload_id}/complete")
+        complete_resp = requests.post(complete_url, headers=headers, verify=self.verify)
+        complete_resp.raise_for_status()
+
+        json_resp = complete_resp.json()
+        file_token = json_resp.get("file_token")
+        if not file_token:
+            raise RuntimeError("Failed to fetch file_token. Backend completed upload but emitted no token.")
+
+        return file_token
 
     # --- Clients --- #
 
@@ -454,10 +538,11 @@ class APIClient:
         if helper:
             response = requests.put(self._get_url_api_v1("helpers/active"), json={"helper": helper}, verify=self.verify, headers=self._get_headers())
 
-        with open(path, "rb") as file:
-            response = requests.post(
-                self._get_url_api_v1("models/"), files={"file": file}, data={"helper": helper}, verify=self.verify, headers=self._get_headers()
-            )
+        file_token = self._perform_chunked_upload(path)
+
+        response = requests.post(
+            self._get_url_api_v1("models/"), data={"helper": helper, "file_token": file_token}, verify=self.verify, headers=self._get_headers()
+        )
         return response.json()
 
     # --- Packages --- #
@@ -556,14 +641,14 @@ class APIClient:
         :return: A dict with success or failure message.
         :rtype: dict
         """
-        with open(path, "rb") as file:
-            response = requests.post(
-                self._get_url_api_v1("packages/"),
-                files={"file": file},
-                data={"helper": helper, "name": name, "description": description},
-                verify=self.verify,
-                headers=self._get_headers(),
-            )
+        file_token = self._perform_chunked_upload(path)
+
+        response = requests.post(
+            self._get_url_api_v1("packages/"),
+            data={"helper": helper, "name": name, "description": description, "file_token": file_token, "file_name": os.path.basename(path)},
+            verify=self.verify,
+            headers=self._get_headers(),
+        )
 
         _json = response.json()
 
@@ -1138,6 +1223,30 @@ class APIClient:
         """
         url = self._get_url_api_v1("attributes/")
         response = requests.post(url, json=attribute, headers=self._get_headers(), verify=self.verify)
+        response.raise_for_status()
+        return response.json()
+
+    def add_status(self, status: dict) -> dict:
+        """Submit a status entry to the controller API.
+
+        :param status: A dict matching StatusDTO.schema, e.g.:
+
+            .. code-block:: json
+
+               {
+                   "type": "MODEL_UPDATE",
+                   "log_level": "INFO",
+                   "status": "Training complete",
+                   "sender": {
+                       "client_id": "abc-123"
+                   }
+               }
+
+        :return: Parsed JSON response from the server.
+        :rtype: dict
+        """
+        url = self._get_url_api_v1("statuses/")
+        response = requests.post(url, json=status, headers=self._get_headers(), verify=self.verify)
         response.raise_for_status()
         return response.json()
 

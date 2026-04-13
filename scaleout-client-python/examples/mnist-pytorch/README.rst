@@ -5,13 +5,13 @@ This is a minimal Scaleout Edge project based on the classic hand-written digit 
 implemented in PyTorch. The example is intended as a simple quickstart to learn how to use Scaleout Edge.
 
 **Note:** We recommend that all new users start by taking the Quickstart Tutorial:
-https://scaleout.readthedocs.io/en/stable/quickstart.html
+https://docs.scaleoutsystems.com/en/latest/quickstart.html
 
 
 Prerequisites
 -------------
 
--  `Python >=3.9, <=3.12 <https://www.python.org/downloads>`__
+-  `Python >=3.11, <3.14 <https://www.python.org/downloads>`__
 
 
 Creating the compute package and seed model
@@ -25,12 +25,19 @@ We recommend installing in a virtual environment.
 
 .. code-block::
 
-   git clone https://github.com/scaleoutsystems/scaleout.git
-   cd scaleout/scaleout-client-python/examples/mnist-pytorch
+   git clone https://github.com/scaleoutsystems/scaleout-client.git
+   cd scaleout-client/scaleout-client-python/examples/mnist-pytorch
    python -m venv .venv
    source .venv/bin/activate
    pip install scaleout
 
+Login to Scaleout Edge:
+
+Before running any commands, login to your Scaleout Edge instance:
+
+.. code-block::
+
+   scaleout login <URL>
 
 Create the compute package:
 
@@ -57,4 +64,4 @@ Running the project on Scaleout Edge
 ---------------------------
 
 To learn how to set up your Scaleout project and connect clients,
-take the quickstart tutorial: https://scaleout.readthedocs.io/en/stable/quickstart.html
+take the quickstart tutorial: https://docs.scaleoutsystems.com/en/latest/quickstart.html

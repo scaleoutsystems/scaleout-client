@@ -35,7 +35,7 @@ If you discover a security vulnerability, please follow these steps:
 
 While using this project, we recommend:
 - Keeping the project up-to-date (which in turn will keep dependencies up-to-date). If you install from source, don't forget to reinstall the project after a pull. 
-- Reviewing [our documentation](https://docs.scaleoutsystems.com/en/stable/) for secure configuration tips.
+- Reviewing [our documentation](https://docs.scaleoutsystems.com/en/latest/) for secure configuration tips.
 - Reporting issues responsibly.
 
 We thank you for helping us keep this project safe for the community!

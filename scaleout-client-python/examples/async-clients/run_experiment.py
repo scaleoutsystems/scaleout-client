@@ -1,7 +1,7 @@
-"""This script runs federated learning training sessions in FEDn.
+"""This script runs federated learning training sessions in Scaleout.
 
 It initiates a configurable number of sequential training sessions, each with a specified
-number of rounds. The script connects to a FEDn network using the API client, starts each
+number of rounds. The script connects to a Scaleout network using the API client, starts each
 session with the appropriate configuration, and monitors the session until completion.
 
 This is useful for automating experiments with different federated learning configurations
@@ -14,9 +14,9 @@ import time
 import uuid
 
 from config import settings
-from scaleout import APIClient
+from scaleout import Scaleout
 
-client = APIClient(
+client = Scaleout(
     host=settings["DISCOVER_HOST"],
     port=settings["DISCOVER_PORT"],
     secure=settings["SECURE"],

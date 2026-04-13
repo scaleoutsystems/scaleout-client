@@ -1,4 +1,4 @@
-"""Unit tests for APIClient initialization and URL handling."""
+"""Unit tests for Scaleout initialization and URL handling."""
 
 import os
 import unittest
@@ -6,11 +6,11 @@ from unittest.mock import patch, MagicMock
 
 import requests
 
-from scaleoututil.api.client import APIClient
+from scaleoututil.api.client import Scaleout
 
 
-class TestAPIClientInitialization(unittest.TestCase):
-    """Test cases for APIClient initialization scenarios."""
+class TestScaleoutInitialization(unittest.TestCase):
+    """Test cases for Scaleout initialization scenarios."""
 
     def setUp(self):
         """Set up test fixtures."""
@@ -30,7 +30,7 @@ class TestAPIClientInitialization(unittest.TestCase):
 
     def test_protocol_in_host_https(self):
         """Test initialization with https:// protocol in host URL."""
-        client = APIClient(host="https://example.com")
+        client = Scaleout(host="https://example.com")
         
         self.assertEqual(client.host, "example.com")
         self.assertTrue(client.secure)
@@ -38,7 +38,7 @@ class TestAPIClientInitialization(unittest.TestCase):
 
     def test_protocol_in_host_http(self):
         """Test initialization with http:// protocol in host URL."""
-        client = APIClient(host="http://example.com")
+        client = Scaleout(host="http://example.com")
         
         self.assertEqual(client.host, "example.com")
         self.assertFalse(client.secure)
@@ -46,7 +46,7 @@ class TestAPIClientInitialization(unittest.TestCase):
 
     def test_protocol_in_host_with_custom_port(self):
         """Test initialization with protocol and custom port in host URL."""
-        client = APIClient(host="https://example.com:8080")
+        client = Scaleout(host="https://example.com:8080")
         
         self.assertEqual(client.host, "example.com")
         self.assertTrue(client.secure)
@@ -54,7 +54,7 @@ class TestAPIClientInitialization(unittest.TestCase):
 
     def test_explicit_secure_true(self):
         """Test initialization with explicit secure=True parameter."""
-        client = APIClient(host="example.com", secure=True)
+        client = Scaleout(host="example.com", secure=True)
         
         self.assertEqual(client.host, "example.com")
         self.assertTrue(client.secure)
@@ -62,7 +62,7 @@ class TestAPIClientInitialization(unittest.TestCase):
 
     def test_explicit_secure_false(self):
         """Test initialization with explicit secure=False parameter."""
-        client = APIClient(host="example.com", secure=False)
+        client = Scaleout(host="example.com", secure=False)
         
         self.assertEqual(client.host, "example.com")
         self.assertFalse(client.secure)
@@ -70,7 +70,7 @@ class TestAPIClientInitialization(unittest.TestCase):
 
     def test_port_443_auto_detects_https(self):
         """Test that port 443 automatically enables HTTPS."""
-        client = APIClient(host="example.com", port=443)
+        client = Scaleout(host="example.com", port=443)
         
         self.assertEqual(client.host, "example.com")
         self.assertTrue(client.secure)
@@ -78,7 +78,7 @@ class TestAPIClientInitialization(unittest.TestCase):
 
     def test_explicit_port_with_secure_true(self):
         """Test initialization with custom port and secure=True."""
-        client = APIClient(host="example.com", port=8443, secure=True)
+        client = Scaleout(host="example.com", port=8443, secure=True)
         
         self.assertEqual(client.host, "example.com")
         self.assertTrue(client.secure)
@@ -86,7 +86,7 @@ class TestAPIClientInitialization(unittest.TestCase):
 
     def test_explicit_port_with_secure_false(self):
         """Test initialization with custom port and secure=False."""
-        client = APIClient(host="example.com", port=8080, secure=False)
+        client = Scaleout(host="example.com", port=8080, secure=False)
         
         self.assertEqual(client.host, "example.com")
         self.assertFalse(client.secure)
@@ -94,7 +94,7 @@ class TestAPIClientInitialization(unittest.TestCase):
 
     def test_no_port_no_secure_defaults_to_http_80(self):
         """Test that no port and no secure parameter defaults to HTTP on port 80."""
-        client = APIClient(host="example.com")
+        client = Scaleout(host="example.com")
         
         self.assertEqual(client.host, "example.com")
         self.assertFalse(client.secure)
@@ -109,7 +109,7 @@ class TestAPIClientInitialization(unittest.TestCase):
         # Create the logger instance and patch its warning method
         logger_instance = LoggerClass()
         with patch.object(logger_instance, 'warning') as mock_warning:
-            client = APIClient(host="https://example.com", secure=False)
+            client = Scaleout(host="https://example.com", secure=False)
             
             # Verify warning message was logged
             mock_warning.assert_called_once()
@@ -129,7 +129,7 @@ class TestAPIClientInitialization(unittest.TestCase):
         # Create the logger instance and patch its warning method
         logger_instance = LoggerClass()
         with patch.object(logger_instance, 'warning') as mock_warning:
-            client = APIClient(host="http://example.com", secure=True)
+            client = Scaleout(host="http://example.com", secure=True)
             
             # Verify warning message was logged
             mock_warning.assert_called_once()
@@ -141,7 +141,7 @@ class TestAPIClientInitialization(unittest.TestCase):
 
     def test_custom_port_no_secure_defaults_to_http(self):
         """Test that custom port without secure parameter defaults to HTTP."""
-        client = APIClient(host="example.com", port=9000)
+        client = Scaleout(host="example.com", port=9000)
         
         self.assertEqual(client.host, "example.com")
         self.assertFalse(client.secure)
@@ -149,15 +149,15 @@ class TestAPIClientInitialization(unittest.TestCase):
 
     def test_port_443_with_explicit_secure_false(self):
         """Test port 443 with explicit secure=False (secure parameter wins)."""
-        client = APIClient(host="example.com", port=443, secure=False)
+        client = Scaleout(host="example.com", port=443, secure=False)
         
         self.assertEqual(client.host, "example.com")
         self.assertFalse(client.secure)
         self.assertEqual(client.port, 443)
 
 
-class TestAPIClientURLConstruction(unittest.TestCase):
-    """Test cases for APIClient URL construction."""
+class TestScaleoutURLConstruction(unittest.TestCase):
+    """Test cases for Scaleout URL construction."""
 
     def setUp(self):
         """Set up test fixtures."""
@@ -177,41 +177,41 @@ class TestAPIClientURLConstruction(unittest.TestCase):
 
     def test_get_url_https_with_port(self):
         """Test URL construction for HTTPS with explicit port."""
-        client = APIClient(host="example.com", port=8443, secure=True)
+        client = Scaleout(host="example.com", port=8443, secure=True)
         url = client._get_url("api/test")
         
         self.assertEqual(url, "https://example.com:8443/api/test")
 
     def test_get_url_http_with_port(self):
         """Test URL construction for HTTP with explicit port."""
-        client = APIClient(host="example.com", port=8080, secure=False)
+        client = Scaleout(host="example.com", port=8080, secure=False)
         url = client._get_url("api/test")
         
         self.assertEqual(url, "http://example.com:8080/api/test")
 
     def test_get_url_https_default_port(self):
         """Test URL construction for HTTPS with default port 443."""
-        client = APIClient(host="example.com", secure=True)
+        client = Scaleout(host="example.com", secure=True)
         url = client._get_url("api/test")
         
         self.assertEqual(url, "https://example.com:443/api/test")
 
     def test_get_url_http_default_port(self):
         """Test URL construction for HTTP with default port 80."""
-        client = APIClient(host="example.com", secure=False)
+        client = Scaleout(host="example.com", secure=False)
         url = client._get_url("api/test")
         
         self.assertEqual(url, "http://example.com:80/api/test")
 
     def test_get_url_api_v1(self):
         """Test URL construction for API v1 endpoints."""
-        client = APIClient(host="example.com", secure=True)
+        client = Scaleout(host="example.com", secure=True)
         url = client._get_url_api_v1("clients/test")
         
         self.assertEqual(url, "https://example.com:443/api/v1/clients/test")
 
 
-class TestAPIClientEdgeCases(unittest.TestCase):
+class TestScaleoutEdgeCases(unittest.TestCase):
     """Test cases for edge cases and special scenarios."""
 
     def setUp(self):
@@ -232,7 +232,7 @@ class TestAPIClientEdgeCases(unittest.TestCase):
 
     def test_localhost_defaults(self):
         """Test initialization with localhost."""
-        client = APIClient(host="localhost")
+        client = Scaleout(host="localhost")
         
         self.assertEqual(client.host, "localhost")
         self.assertFalse(client.secure)
@@ -240,7 +240,7 @@ class TestAPIClientEdgeCases(unittest.TestCase):
 
     def test_localhost_with_port(self):
         """Test initialization with localhost and port."""
-        client = APIClient(host="localhost", port=8092, secure=False)
+        client = Scaleout(host="localhost", port=8092, secure=False)
         
         self.assertEqual(client.host, "localhost")
         self.assertFalse(client.secure)
@@ -248,7 +248,7 @@ class TestAPIClientEdgeCases(unittest.TestCase):
 
     def test_ip_address_with_port(self):
         """Test initialization with IP address and port."""
-        client = APIClient(host="192.168.1.100", port=9000, secure=False)
+        client = Scaleout(host="192.168.1.100", port=9000, secure=False)
         
         self.assertEqual(client.host, "192.168.1.100")
         self.assertFalse(client.secure)
@@ -256,7 +256,7 @@ class TestAPIClientEdgeCases(unittest.TestCase):
 
     def test_complex_domain_name(self):
         """Test initialization with complex domain name."""
-        client = APIClient(host="wandering-math.scylla-atlas.ts.net", port=443)
+        client = Scaleout(host="wandering-math.scylla-atlas.ts.net", port=443)
         
         self.assertEqual(client.host, "wandering-math.scylla-atlas.ts.net")
         self.assertTrue(client.secure)
@@ -264,16 +264,16 @@ class TestAPIClientEdgeCases(unittest.TestCase):
 
     def test_verify_parameter(self):
         """Test that verify parameter is properly set."""
-        client = APIClient(host="example.com", verify=True)
+        client = Scaleout(host="example.com", verify=True)
         self.assertTrue(client.verify)
         
-        client = APIClient(host="example.com", verify=False)
+        client = Scaleout(host="example.com", verify=False)
         self.assertFalse(client.verify)
 
     def test_port_in_url_and_port_parameter_conflict(self):
         """Test that port parameter overrides port in URL with warning."""
         with patch('scaleoututil.api.client.ScaleoutLogger') as mock_logger:
-            client = APIClient(host="example.com:8080", port=9000)
+            client = Scaleout(host="example.com:8080", port=9000)
             
             # Verify warning was logged
             mock_logger.return_value.warning.assert_called_once()
@@ -289,7 +289,7 @@ class TestAPIClientEdgeCases(unittest.TestCase):
     def test_port_in_url_and_same_port_parameter_no_warning(self):
         """Test that same port in URL and parameter doesn't trigger warning."""
         with patch('scaleoututil.api.client.ScaleoutLogger') as mock_logger:
-            client = APIClient(host="example.com:8080", port=8080)
+            client = Scaleout(host="example.com:8080", port=8080)
             
             # No warning should be logged for matching ports
             mock_logger.return_value.warning.assert_not_called()
@@ -299,13 +299,13 @@ class TestAPIClientEdgeCases(unittest.TestCase):
 
     def test_port_in_url_no_port_parameter(self):
         """Test that port from URL is used when no port parameter provided."""
-        client = APIClient(host="example.com:8080")
+        client = Scaleout(host="example.com:8080")
         
         self.assertEqual(client.host, "example.com")
         self.assertEqual(client.port, 8080)
 
 
-class TestAPIClientAuthScheme(unittest.TestCase):
+class TestScaleoutAuthScheme(unittest.TestCase):
     """Test cases for auth scheme handling."""
 
     def setUp(self):
@@ -326,28 +326,28 @@ class TestAPIClientAuthScheme(unittest.TestCase):
 
     def test_default_auth_scheme(self):
         """Test that auth scheme defaults to 'Bearer'."""
-        client = APIClient(host="example.com")
+        client = Scaleout(host="example.com")
         self.assertEqual(client.auth_scheme, "Bearer")
 
     def test_explicit_auth_scheme(self):
         """Test explicit auth_scheme parameter."""
-        client = APIClient(host="example.com", auth_scheme="Token")
+        client = Scaleout(host="example.com", auth_scheme="Token")
         self.assertEqual(client.auth_scheme, "Token")
 
     def test_auth_scheme_from_env_var(self):
         """Test auth scheme from SCALEOUT_AUTH_SCHEME env var."""
         os.environ['SCALEOUT_AUTH_SCHEME'] = "JWT"
-        client = APIClient(host="example.com")
+        client = Scaleout(host="example.com")
         self.assertEqual(client.auth_scheme, "JWT")
 
     def test_auth_scheme_parameter_overrides_env_var(self):
         """Test that explicit parameter overrides env var."""
         os.environ['SCALEOUT_AUTH_SCHEME'] = "JWT"
-        client = APIClient(host="example.com", auth_scheme="Bearer")
+        client = Scaleout(host="example.com", auth_scheme="Bearer")
         self.assertEqual(client.auth_scheme, "Bearer")
 
 
-class TestAPIClientTokenEndpoint(unittest.TestCase):
+class TestScaleoutTokenEndpoint(unittest.TestCase):
     """Test cases for token endpoint construction."""
 
     def setUp(self):
@@ -365,7 +365,7 @@ class TestAPIClientTokenEndpoint(unittest.TestCase):
 
     def test_token_endpoint_constructed_https(self):
         """Test token endpoint is constructed correctly for HTTPS."""
-        client = APIClient(host="example.com", secure=True, token="test-token")
+        client = Scaleout(host="example.com", secure=True, token="test-token")
         
         # Verify TokenManager was called with correct endpoint
         self.mock_token_manager.assert_called_once()
@@ -374,7 +374,7 @@ class TestAPIClientTokenEndpoint(unittest.TestCase):
 
     def test_token_endpoint_constructed_http(self):
         """Test token endpoint is constructed correctly for HTTP."""
-        client = APIClient(host="example.com", secure=False, token="test-token")
+        client = Scaleout(host="example.com", secure=False, token="test-token")
         
         self.mock_token_manager.assert_called_once()
         call_kwargs = self.mock_token_manager.call_args[1]
@@ -382,7 +382,7 @@ class TestAPIClientTokenEndpoint(unittest.TestCase):
 
     def test_token_endpoint_with_custom_port(self):
         """Test token endpoint with custom port."""
-        client = APIClient(host="example.com", port=8443, secure=True, token="test-token")
+        client = Scaleout(host="example.com", port=8443, secure=True, token="test-token")
         
         self.mock_token_manager.assert_called_once()
         call_kwargs = self.mock_token_manager.call_args[1]
@@ -391,14 +391,14 @@ class TestAPIClientTokenEndpoint(unittest.TestCase):
     def test_explicit_token_endpoint_parameter(self):
         """Test that explicit token_endpoint parameter is used."""
         custom_endpoint = "https://auth.example.com/refresh"
-        client = APIClient(host="example.com", token="test-token", token_endpoint=custom_endpoint)
+        client = Scaleout(host="example.com", token="test-token", token_endpoint=custom_endpoint)
         
         self.mock_token_manager.assert_called_once()
         call_kwargs = self.mock_token_manager.call_args[1]
         self.assertEqual(call_kwargs['token_endpoint'], custom_endpoint)
 
 
-class TestAPIClientConfusingCombinations(unittest.TestCase):
+class TestScaleoutConfusingCombinations(unittest.TestCase):
     """Test cases for confusing or conflicting protocol/port combinations."""
 
     def setUp(self):
@@ -416,7 +416,7 @@ class TestAPIClientConfusingCombinations(unittest.TestCase):
 
     def test_https_url_with_port_80(self):
         """Test https:// URL with typically HTTP port 80."""
-        client = APIClient(host="https://example.com:80")
+        client = Scaleout(host="https://example.com:80")
         
         # Protocol should win, but port should be from URL
         self.assertTrue(client.secure)
@@ -424,7 +424,7 @@ class TestAPIClientConfusingCombinations(unittest.TestCase):
 
     def test_http_url_with_port_443(self):
         """Test http:// URL with typically HTTPS port 443."""
-        client = APIClient(host="http://example.com:443")
+        client = Scaleout(host="http://example.com:443")
         
         # Protocol should win, but port should be from URL
         self.assertFalse(client.secure)
@@ -432,7 +432,7 @@ class TestAPIClientConfusingCombinations(unittest.TestCase):
 
     def test_port_443_with_explicit_secure_false(self):
         """Test port 443 with explicit secure=False (user override)."""
-        client = APIClient(host="example.com", port=443, secure=False)
+        client = Scaleout(host="example.com", port=443, secure=False)
         
         # Explicit secure parameter should be respected
         self.assertFalse(client.secure)
@@ -440,13 +440,13 @@ class TestAPIClientConfusingCombinations(unittest.TestCase):
 
     def test_port_80_with_explicit_secure_true(self):
         """Test port 80 with explicit secure=True."""
-        client = APIClient(host="example.com", port=80, secure=True)
+        client = Scaleout(host="example.com", port=80, secure=True)
         
         self.assertTrue(client.secure)
         self.assertEqual(client.port, 80)
 
 
-class TestAPIClientEdgeCasesAndMalformed(unittest.TestCase):
+class TestScaleoutEdgeCasesAndMalformed(unittest.TestCase):
     """Test cases for edge cases and potentially malformed inputs."""
 
     def setUp(self):
@@ -464,14 +464,14 @@ class TestAPIClientEdgeCasesAndMalformed(unittest.TestCase):
 
     def test_host_with_trailing_slash(self):
         """Test host with trailing slash."""
-        client = APIClient(host="example.com/")
+        client = Scaleout(host="example.com/")
         
         # Should handle gracefully
         self.assertIn("example.com", client.host)
 
     def test_url_with_path(self):
         """Test URL with path component."""
-        client = APIClient(host="https://example.com/api/v1")
+        client = Scaleout(host="https://example.com/api/v1")
         
         # Path should be stripped by parse_url
         self.assertEqual(client.host, "example.com")
@@ -479,14 +479,14 @@ class TestAPIClientEdgeCasesAndMalformed(unittest.TestCase):
 
     def test_ipv4_address(self):
         """Test with IPv4 address."""
-        client = APIClient(host="192.168.1.100", port=8080)
+        client = Scaleout(host="192.168.1.100", port=8080)
         
         self.assertEqual(client.host, "192.168.1.100")
         self.assertEqual(client.port, 8080)
 
     def test_ipv4_address_in_url(self):
         """Test with IPv4 address in URL."""
-        client = APIClient(host="https://192.168.1.100:8443")
+        client = Scaleout(host="https://192.168.1.100:8443")
         
         self.assertEqual(client.host, "192.168.1.100")
         self.assertTrue(client.secure)
@@ -494,14 +494,14 @@ class TestAPIClientEdgeCasesAndMalformed(unittest.TestCase):
 
     def test_localhost_variations(self):
         """Test various localhost formats."""
-        client1 = APIClient(host="localhost")
+        client1 = Scaleout(host="localhost")
         self.assertEqual(client1.host, "localhost")
         
-        client2 = APIClient(host="127.0.0.1")
+        client2 = Scaleout(host="127.0.0.1")
         self.assertEqual(client2.host, "127.0.0.1")
 
 
-class TestAPIClientEnvironmentVariables(unittest.TestCase):
+class TestScaleoutEnvironmentVariables(unittest.TestCase):
     """Test cases for environment variable handling."""
 
     def setUp(self):
@@ -537,7 +537,7 @@ class TestAPIClientEnvironmentVariables(unittest.TestCase):
     def test_token_from_env_var(self):
         """Test token is loaded from SCALEOUT_AUTH_TOKEN env var."""
         os.environ['SCALEOUT_AUTH_TOKEN'] = "env-token"
-        client = APIClient(host="example.com")
+        client = Scaleout(host="example.com")
         
         # TokenManager should be called with token from env
         self.mock_token_manager.assert_called_once()
@@ -547,7 +547,7 @@ class TestAPIClientEnvironmentVariables(unittest.TestCase):
     def test_token_parameter_overrides_env_var(self):
         """Test that explicit token parameter overrides env var."""
         os.environ['SCALEOUT_AUTH_TOKEN'] = "env-token"
-        client = APIClient(host="example.com", token="param-token")
+        client = Scaleout(host="example.com", token="param-token")
         
         self.mock_token_manager.assert_called_once()
         call_kwargs = self.mock_token_manager.call_args[1]
@@ -555,7 +555,7 @@ class TestAPIClientEnvironmentVariables(unittest.TestCase):
 
     def test_token_with_scheme_prefix_is_cleaned(self):
         """Test that token with 'Bearer ' prefix is cleaned."""
-        client = APIClient(host="example.com", token="Bearer some-token-value")
+        client = Scaleout(host="example.com", token="Bearer some-token-value")
         
         self.mock_token_manager.assert_called_once()
         call_kwargs = self.mock_token_manager.call_args[1]
@@ -564,14 +564,14 @@ class TestAPIClientEnvironmentVariables(unittest.TestCase):
 
     def test_no_token_no_token_manager(self):
         """Test that TokenManager is not created when no token provided."""
-        client = APIClient(host="example.com")
+        client = Scaleout(host="example.com")
         
         # TokenManager should not be instantiated without token
         self.mock_token_manager.assert_not_called()
         self.assertIsNone(client.token_manager)
 
 
-class TestAPIClientHeaders(unittest.TestCase):
+class TestScaleoutHeaders(unittest.TestCase):
     """Test cases for header construction."""
 
     def setUp(self):
@@ -586,7 +586,7 @@ class TestAPIClientHeaders(unittest.TestCase):
 
     def test_get_headers_without_token_manager(self):
         """Test _get_headers when no TokenManager is configured."""
-        client = APIClient(host="example.com")
+        client = Scaleout(host="example.com")
         headers = client._get_headers()
         
         # Should return empty or base headers
@@ -594,7 +594,7 @@ class TestAPIClientHeaders(unittest.TestCase):
 
     def test_get_headers_with_additional_headers(self):
         """Test _get_headers with additional headers merging."""
-        client = APIClient(host="example.com")
+        client = Scaleout(host="example.com")
         additional = {"X-Custom": "value", "X-Test": "123"}
         headers = client._get_headers(additional_headers=additional)
         
@@ -608,7 +608,7 @@ class TestAPIClientHeaders(unittest.TestCase):
             mock_tm_instance.get_auth_header.return_value = {"Authorization": "Bearer test-token"}
             mock_tm_class.return_value = mock_tm_instance
             
-            client = APIClient(host="example.com", token="test-token")
+            client = Scaleout(host="example.com", token="test-token")
             headers = client._get_headers()
             
             # Should get headers from TokenManager
@@ -616,8 +616,8 @@ class TestAPIClientHeaders(unittest.TestCase):
             mock_tm_instance.get_auth_header.assert_called_once()
 
 
-class TestAPIClientTokenManagerFailureFallback(unittest.TestCase):
-    """Test that APIClient gracefully falls back to unauthenticated mode when TokenManager init fails."""
+class TestScaleoutTokenManagerFailureFallback(unittest.TestCase):
+    """Test that Scaleout gracefully falls back to unauthenticated mode when TokenManager init fails."""
 
     def setUp(self):
         """Set up test fixtures."""
@@ -632,7 +632,7 @@ class TestAPIClientTokenManagerFailureFallback(unittest.TestCase):
     def test_runtime_error_falls_back_to_no_auth(self):
         """Test that a RuntimeError from TokenManager results in unauthenticated client."""
         with patch('scaleoututil.api.client.TokenManager', side_effect=RuntimeError("Token refresh failed")):
-            client = APIClient(host="example.com", token="some-stale-token")
+            client = Scaleout(host="example.com", token="some-stale-token")
 
         self.assertIsNone(client.token_manager)
 
@@ -642,14 +642,14 @@ class TestAPIClientTokenManagerFailureFallback(unittest.TestCase):
             'scaleoututil.api.client.TokenManager',
             side_effect=requests.exceptions.ConnectionError("Connection refused"),
         ):
-            client = APIClient(host="localhost", port=8080, secure=False, token="some-token")
+            client = Scaleout(host="localhost", port=8080, secure=False, token="some-token")
 
         self.assertIsNone(client.token_manager)
 
     def test_fallback_get_headers_returns_empty_dict(self):
         """Test that _get_headers returns empty headers (no Authorization) after fallback."""
         with patch('scaleoututil.api.client.TokenManager', side_effect=RuntimeError("No auth endpoint")):
-            client = APIClient(host="example.com", token="some-token")
+            client = Scaleout(host="example.com", token="some-token")
 
         headers = client._get_headers()
         self.assertIsInstance(headers, dict)
@@ -658,7 +658,7 @@ class TestAPIClientTokenManagerFailureFallback(unittest.TestCase):
     def test_fallback_get_headers_still_merges_additional_headers(self):
         """Test that additional headers are still merged after fallback."""
         with patch('scaleoututil.api.client.TokenManager', side_effect=RuntimeError("No auth endpoint")):
-            client = APIClient(host="example.com", token="some-token")
+            client = Scaleout(host="example.com", token="some-token")
 
         headers = client._get_headers(additional_headers={"X-Custom": "value"})
         self.assertEqual(headers["X-Custom"], "value")
@@ -668,7 +668,7 @@ class TestAPIClientTokenManagerFailureFallback(unittest.TestCase):
         """Test that a warning is logged when falling back to unauthenticated mode."""
         with patch('scaleoututil.api.client.TokenManager', side_effect=RuntimeError("Token refresh failed")):
             with patch('scaleoututil.api.client.ScaleoutLogger') as mock_logger:
-                client = APIClient(host="example.com", token="some-token")
+                client = Scaleout(host="example.com", token="some-token")
 
                 mock_logger.return_value.warning.assert_called()
                 warning_msg = mock_logger.return_value.warning.call_args[0][0]

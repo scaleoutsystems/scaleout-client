@@ -6,7 +6,7 @@ from data import get_dataloaders
 from model import compile_model, model_hyperparams, save_parameters
 from settings import BATCHSIZE_VALID, DATASET_PATH, KEYWORDS
 
-from scaleout import APIClient
+from scaleout import Scaleout
 
 HOST = ""  ## INSERT HOST
 TOKEN = ""  ## INSERT TOKEN
@@ -34,12 +34,12 @@ def main():
         return
 
     if HOST == "":
-        print("Please insert HOST and TOKEN in fedn_api.py")
+        print("Please insert HOST and TOKEN in scaleout_api.py")
         return
     if TOKEN:
-        api_client = APIClient(host=HOST, secure=True, verify=True, token=TOKEN)
+        api_client = Scaleout(host=HOST, secure=True, verify=True, token=TOKEN)
     else:
-        api_client = APIClient(host=HOST)
+        api_client = Scaleout(host=HOST)
 
     if args.upload_seed:
         init_seedmodel()

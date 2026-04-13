@@ -1,14 +1,14 @@
-"""Unit tests for APIClient error handling and edge cases."""
+"""Unit tests for Scaleout error handling and edge cases."""
 
 import os
 import unittest
 from unittest.mock import patch, MagicMock, mock_open
 import requests
 
-from scaleoututil.api.client import APIClient
+from scaleoututil.api.client import Scaleout
 
 
-class TestAPIClientHTTPErrors(unittest.TestCase):
+class TestScaleoutHTTPErrors(unittest.TestCase):
     """Test cases for HTTP error handling."""
 
     def setUp(self):
@@ -19,7 +19,7 @@ class TestAPIClientHTTPErrors(unittest.TestCase):
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
         
-        self.client = APIClient(host="example.com", secure=False)
+        self.client = Scaleout(host="example.com", secure=False)
 
     def tearDown(self):
         """Clean up test fixtures."""
@@ -75,7 +75,7 @@ class TestAPIClientHTTPErrors(unittest.TestCase):
         self.assertEqual(result, {"error": "Forbidden"})
 
 
-class TestAPIClientNetworkErrors(unittest.TestCase):
+class TestScaleoutNetworkErrors(unittest.TestCase):
     """Test cases for network-related errors."""
 
     def setUp(self):
@@ -86,7 +86,7 @@ class TestAPIClientNetworkErrors(unittest.TestCase):
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
         
-        self.client = APIClient(host="example.com", secure=False)
+        self.client = Scaleout(host="example.com", secure=False)
 
     def tearDown(self):
         """Clean up test fixtures."""
@@ -120,16 +120,15 @@ class TestAPIClientNetworkErrors(unittest.TestCase):
             self.client.get_controller_status()
 
     @patch('requests.put')
-    @patch('builtins.open', new_callable=mock_open, read_data=b"model data")
-    def test_post_request_timeout(self, mock_file, mock_put):
+    def test_post_request_timeout(self, mock_put):
         """Test handling of timeout on PUT request (set_active_model uses PUT)."""
         mock_put.side_effect = requests.exceptions.Timeout("Request timed out")
-        
+
         with self.assertRaises(requests.exceptions.Timeout):
             self.client.set_active_model("/tmp/model.npz")
 
 
-class TestAPIClientInvalidResponses(unittest.TestCase):
+class TestScaleoutInvalidResponses(unittest.TestCase):
     """Test cases for invalid or malformed API responses."""
 
     def setUp(self):
@@ -140,7 +139,7 @@ class TestAPIClientInvalidResponses(unittest.TestCase):
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
         
-        self.client = APIClient(host="example.com", secure=False)
+        self.client = Scaleout(host="example.com", secure=False)
 
     def tearDown(self):
         """Clean up test fixtures."""
@@ -184,7 +183,7 @@ class TestAPIClientInvalidResponses(unittest.TestCase):
         self.assertEqual(result, {"unexpected": "format"})
 
 
-class TestAPIClientFileOperations(unittest.TestCase):
+class TestScaleoutFileOperations(unittest.TestCase):
     """Test cases for file download and upload operations."""
 
     def setUp(self):
@@ -195,7 +194,7 @@ class TestAPIClientFileOperations(unittest.TestCase):
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
         
-        self.client = APIClient(host="example.com", secure=False)
+        self.client = Scaleout(host="example.com", secure=False)
 
     def tearDown(self):
         """Clean up test fixtures."""
@@ -268,50 +267,47 @@ class TestAPIClientFileOperations(unittest.TestCase):
 
     @patch('requests.post')
     @patch('requests.put')
-    @patch('builtins.open', new_callable=mock_open, read_data=b"model data")
-    def test_set_active_model_npz(self, mock_file, mock_put, mock_post):
+    def test_set_active_model_npz(self, mock_put, mock_post):
         """Test setting active model with .npz file."""
         mock_post_response = MagicMock()
         mock_post_response.json.return_value = {"success": True}
         mock_post.return_value = mock_post_response
-        
+
         mock_put_response = MagicMock()
         mock_put.return_value = mock_put_response
-        
-        result = self.client.set_active_model("/tmp/model.npz")
-        
+
+        with patch.object(self.client, '_perform_chunked_upload', return_value='fake-token') as mock_upload:
+            result = self.client.set_active_model("/tmp/model.npz")
+            mock_upload.assert_called_once_with("/tmp/model.npz")
+
         self.assertEqual(result, {"success": True})
-        mock_file.assert_called_with("/tmp/model.npz", "rb")
 
     @patch('requests.post')
     @patch('requests.put')
-    @patch('builtins.open', new_callable=mock_open, read_data=b"model data")
-    def test_set_active_model_bin(self, mock_file, mock_put, mock_post):
+    def test_set_active_model_bin(self, mock_put, mock_post):
         """Test setting active model with .bin file."""
         mock_post_response = MagicMock()
         mock_post_response.json.return_value = {"success": True}
         mock_post.return_value = mock_post_response
-        
+
         mock_put_response = MagicMock()
         mock_put.return_value = mock_put_response
-        
-        result = self.client.set_active_model("/tmp/model.bin")
-        
+
+        with patch.object(self.client, '_perform_chunked_upload', return_value='fake-token'):
+            result = self.client.set_active_model("/tmp/model.bin")
+
         self.assertEqual(result, {"success": True})
 
     @patch('requests.put')
-    @patch('builtins.open', side_effect=FileNotFoundError("File not found"))
-    def test_set_active_model_file_not_found(self, mock_file, mock_put):
+    def test_set_active_model_file_not_found(self, mock_put):
         """Test setting active model with non-existent file."""
-        # Mock the PUT request for helper
-        mock_put_response = MagicMock()
-        mock_put.return_value = mock_put_response
-        
+        mock_put.return_value = MagicMock()
+
         with self.assertRaises(FileNotFoundError):
             self.client.set_active_model("/nonexistent/model.npz")
 
 
-class TestAPIClientSessionMethods(unittest.TestCase):
+class TestScaleoutSessionMethods(unittest.TestCase):
     """Test cases for session-related methods."""
 
     def setUp(self):
@@ -322,7 +318,7 @@ class TestAPIClientSessionMethods(unittest.TestCase):
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
         
-        self.client = APIClient(host="example.com", secure=False)
+        self.client = Scaleout(host="example.com", secure=False)
 
     def tearDown(self):
         """Clean up test fixtures."""
@@ -420,7 +416,7 @@ class TestAPIClientSessionMethods(unittest.TestCase):
         self.assertEqual(result, "Could not retrieve session status.")
 
 
-class TestAPIClientFilteringAndPagination(unittest.TestCase):
+class TestScaleoutFilteringAndPagination(unittest.TestCase):
     """Test cases for filtering and pagination parameters."""
 
     def setUp(self):
@@ -431,7 +427,7 @@ class TestAPIClientFilteringAndPagination(unittest.TestCase):
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
         
-        self.client = APIClient(host="example.com", secure=False)
+        self.client = Scaleout(host="example.com", secure=False)
 
     def tearDown(self):
         """Clean up test fixtures."""
@@ -498,7 +494,7 @@ class TestAPIClientFilteringAndPagination(unittest.TestCase):
         self.assertEqual(call_params['round_id'], "5")
 
 
-class TestAPIClientValidation(unittest.TestCase):
+class TestScaleoutValidation(unittest.TestCase):
     """Test cases for input validation and edge cases."""
 
     def setUp(self):
@@ -509,7 +505,7 @@ class TestAPIClientValidation(unittest.TestCase):
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
         
-        self.client = APIClient(host="example.com", secure=False)
+        self.client = Scaleout(host="example.com", secure=False)
 
     def tearDown(self):
         """Clean up test fixtures."""

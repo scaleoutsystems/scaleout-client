@@ -1,6 +1,6 @@
-"""This script analyzes client participation in a FEDn session.
+"""This script analyzes client participation in a Scaleout session.
 
-It retrieves data from the FEDn API about a specific training session (or the most recent one
+It retrieves data from the Scaleout API about a specific training session (or the most recent one
 if not specified) and generates a plot showing the number of aggregated models and validations
 per round. This visualization helps in understanding client participation patterns and the
 overall health of the federated learning process across training rounds.
@@ -11,7 +11,7 @@ client participation or model validation in the federated learning network.
 
 import click
 from config import settings
-from scaleout import APIClient
+from scaleout import Scaleout
 import matplotlib.pyplot as plt
 from datetime import datetime, timezone
 
@@ -41,7 +41,7 @@ def get_latest_session_id(client):
 
 def plot_aggregation_data(session_id):
     """Plot aggregation data for the specified session."""
-    client = APIClient(
+    client = Scaleout(
         host=settings["DISCOVER_HOST"],
         port=settings["DISCOVER_PORT"],
         secure=settings["SECURE"],

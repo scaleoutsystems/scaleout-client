@@ -41,7 +41,7 @@ class MyClient:
     ):
         """Complete a model update.
 
-        Load model paramters from ScaleoutModel (managed by the FEDn client),
+        Load model paramters from ScaleoutModel (managed by the Scaleout client),
         perform a model update, and return updated parameters wrapped in a
         ScaleoutModel together with training metadata.
 

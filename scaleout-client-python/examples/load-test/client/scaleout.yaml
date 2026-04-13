@@ -1,8 +1,0 @@
-python_env: python_env.yaml
-entry_points:
-  build:
-    command: python model.py
-  train:
-    command: python train.py
-  validate: 
-    command: python validate.py

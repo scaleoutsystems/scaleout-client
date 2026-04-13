@@ -8,7 +8,7 @@ import tarfile
 import click
 
 from scaleout.cli.main import main
-from scaleout.cli.shared import complement_with_context, get_api_url, get_response, process_response
+from scaleout.cli.shared import complement_with_context, get_api_url, get_response, get_scheme_token, process_response
 from scaleout.cli.upload_util import perform_chunked_upload
 import requests
 
@@ -151,13 +151,17 @@ def set_active(
     - result: package with given id
     """
     base_url, token = complement_with_context(protocol, host, port, token)
-    url = get_api_url(base_url, "packages/")
+    headers = {}
+    _token = get_scheme_token(token=token)
+    if _token:
+        headers = {"Authorization": _token}
 
-    file_token = perform_chunked_upload(base_url, token, file, {"Authorization": token} if token else {})
+    url = get_api_url(base_url, "packages/")
+    file_token = perform_chunked_upload(base_url, token, file, headers)
     response = requests.post(
         url,
         data={"helper": helper, "name": name, "description": description, "file_token": file_token, "file_name": os.path.basename(file)},
-        headers={"Authorization": token} if token else {},
+        headers=headers,
         verify=False,
     )
     if 200 <= response.status_code <= 204:

@@ -1,8 +1,0 @@
-# Constants
-max_physical_batch_size: 32
-epochs: 1
-epsilon: 100.0
-delta: 1e-5
-max_grad_norm: 1.2
-global_rounds: 10
-hardlimit: true

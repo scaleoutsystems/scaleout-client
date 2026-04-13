@@ -220,10 +220,10 @@ class TokenManager:
                 if response.status_code == 400 and "plain HTTP request was sent to HTTPS port" in error_text:
                     ScaleoutLogger().error(
                         "Token refresh failed: HTTP request sent to HTTPS port."
-                        "If using port 443 or an HTTPS endpoint, set secure=True in APIClient initialization."
+                        "If using port 443 or an HTTPS endpoint, set secure=True in Scaleout initialization."
                     )
                     raise RuntimeError(
-                        "Token refresh failed: HTTP request sent to HTTPS port. Please set secure=True when initializing APIClient for HTTPS endpoints."
+                        "Token refresh failed: HTTP request sent to HTTPS port. Please set secure=True when initializing Scaleout for HTTPS endpoints."
                     )
 
                 ScaleoutLogger().error(f"Token refresh failed with status {response.status_code}: {error_text}")

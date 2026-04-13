@@ -1,6 +1,6 @@
-"""This script monitors and records the status of FEDn clients.
+"""This script monitors and records the status of Scaleout clients.
 
-It periodically queries the FEDn API to get the status of all clients and records
+It periodically queries the Scaleout API to get the status of all clients and records
 each client's status in a CSV file. The CSV format makes it easy to import the data
 into plotting tools for visualization and analysis of client availability patterns over time.
 
@@ -14,7 +14,7 @@ import click
 import os
 from datetime import datetime
 from config import settings
-from scaleout import APIClient
+from scaleout import Scaleout
 
 @click.command()
 @click.option("--csv-filename", "-f", default=None,
@@ -22,7 +22,7 @@ from scaleout import APIClient
 @click.option("--interval", "-i", default=5,
               help="Time interval in seconds between status checks. Default is 5 seconds.")
 def monitor_client_status(csv_filename, interval):
-    """Monitor and record the status of FEDn clients.
+    """Monitor and record the status of Scaleout clients.
 
     Records one line per client per iteration with timestamp, client_name, and status.
     """
@@ -37,7 +37,7 @@ def monitor_client_status(csv_filename, interval):
     # Prepend logs directory to filename
     csv_path = os.path.join(logs_dir, csv_filename)
 
-    api_client = APIClient(
+    api_client = Scaleout(
         host=settings["DISCOVER_HOST"],
         port=settings["DISCOVER_PORT"],
         secure=settings["SECURE"],

@@ -1,10 +1,10 @@
 import click
 from config import settings
-from scaleout import APIClient
+from scaleout import Scaleout
 
 
-def init_fedn(seed_path):
-    client = APIClient(
+def init_scaleout(seed_path):
+    client = Scaleout(
         host=settings["DISCOVER_HOST"],
         port=settings["DISCOVER_PORT"],
         secure=settings["SECURE"],
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     @click.command()
     @click.argument("seed_path", type=str, default="seed.npz")
     def main(seed_path):
-        """Initialize FEDn with a seed model from the specified path."""
-        init_fedn(seed_path)
+        """Initialize Scaleout with a seed model from the specified path."""
+        init_scaleout(seed_path)
 
     main()

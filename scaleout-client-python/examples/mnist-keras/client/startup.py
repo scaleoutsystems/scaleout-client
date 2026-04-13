@@ -31,9 +31,9 @@ class MyClient:
     def train(self, scaleout_model: ScaleoutModel, settings, data_path=None, batch_size=32, epochs=5):
         """Complete a model update.
 
-        Load model paramters from in_model_path (managed by the FEDn client),
+        Load model paramters from in_model_path (managed by the Scaleout client),
         perform a model update, and write updated paramters
-        to out_model_path (picked up by the FEDn client).
+        to out_model_path (picked up by the Scaleout client).
 
         :param in_model_path: The path to the input model.
         :type in_model_path: str

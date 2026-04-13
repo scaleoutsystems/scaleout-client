@@ -1,1 +1,1 @@
-"""Tests for APIClient"""
+"""Tests for Scaleout"""

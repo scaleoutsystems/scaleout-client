@@ -1,6 +1,6 @@
 """This scripts starts N_CLIENTS clients using the SDK.
 
-If you are running with a local deployment of FEDn
+If you are running with a local deployment of Scaleout
 using docker compose, you need to make sure that clients
 are able to resolve the name "combiner" to 127.0.0.1
 
@@ -105,7 +105,7 @@ def on_validate(in_model: ScaleoutModel):
 
 
 def run_client(name="client", client_id=None, no_discovery=False, intermittent=False, online_for=120):
-    """Run a FEDn client with configurable connection options.
+    """Run a Scaleout client with configurable connection options.
 
     The client can either connect directly to a combiner or use the discovery service.
     It can also run in continuous or intermittent mode.
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     def main(name, no_discovery, intermittent):
         """Launch multiple federated learning clients that run concurrently.
 
-        This script starts N_CLIENTS (from config) client processes that connect to a FEDn network.
+        This script starts N_CLIENTS (from config) client processes that connect to a Scaleout network.
         Use --name to set a base name for clients, --no-discovery to connect directly to a combiner,
         and --intermittent to simulate clients that periodically disconnect and reconnect.
         """

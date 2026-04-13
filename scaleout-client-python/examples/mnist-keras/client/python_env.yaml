@@ -6,4 +6,4 @@ build_dependencies:
 dependencies:
   - tensorflow>=2.13.1
   - fire==0.3.1
-  - fedn
+  - scaleout

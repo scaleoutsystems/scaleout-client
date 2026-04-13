@@ -12,7 +12,7 @@ class ServerFunctions(ServerFunctionsBase):
         self.round = 0
         self.lr = 0.1
 
-    # Skip any function to use the default FEDn implementation for the function.
+    # Skip any function to use the default Scaleout implementation for the function.
 
     # Called first in the beggining of a round to select clients.
     def client_selection(self, client_ids: list[str], round_type: RoundType) -> list[str]:

@@ -4,12 +4,12 @@ Scaleout Project: Importer Client
 This is an example Scaleout Project on how to design a client that imports client training code rather than running it in a separate process. 
 This enables the user to have access to the grpc channel to send information to thecontroller during training. 
 
-   **Note: We recommend that all new users start by taking the Quickstart Tutorial: https://scaleout.readthedocs.io/en/stable/quickstart.html** 
+   **Note: We recommend that all new users start by taking the Quickstart Tutorial: https://docs.scaleoutsystems.com/en/latest/quickstart.html** 
 
 Prerequisites
 -------------
 
--  `Python >=3.11, <=3.13 <https://www.python.org/downloads>`__
+-  `Python >=3.11, <3.14 <https://www.python.org/downloads>`__
 
 Creating the compute package and seed model
 -------------------------------------------
@@ -18,7 +18,7 @@ Clone the repository:
 
 .. code-block::
 
-   git clone https://github.com/scaleoutsystems/scaleout.git
+   git clone https://github.com/scaleoutsystems/scaleout-client.git
    cd examples/importer-client
 
 Install scaleout in a new virtual environment:
@@ -28,6 +28,14 @@ Install scaleout in a new virtual environment:
    python -m venv scaleout-env
    source scaleout-env/bin/activate
    pip install scaleout
+
+Login to Scaleout Edge:
+
+Before running any commands, login to your Scaleout Edge instance:
+
+.. code-block::
+
+   scaleout login <URL>
 
 Install dependencies in the virtual environment:
 .. code-block::
@@ -60,4 +68,4 @@ Running the project on Scaleout
 
    scaleout client start --init client.yaml
 
-To learn how to set up your Scaleout Studio project and connect clients, take the quickstart tutorial: https://scaleout.readthedocs.io/en/stable/quickstart.html. 
+To learn how to set up your Scaleout Studio project and connect clients, take the quickstart tutorial: https://docs.scaleoutsystems.com/en/latest/quickstart.html. 

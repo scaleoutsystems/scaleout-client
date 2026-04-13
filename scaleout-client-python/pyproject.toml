@@ -1,6 +1,6 @@
 [project]
 name = "scaleout"
-version = "1.0.0"
+version = "1.0.1"
 description = "A client library for the Scaleout Edge"
 authors = [{ name = "Scaleout Systems AB" }]
 requires-python = ">=3.11, <3.14"
@@ -18,7 +18,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://scaleoutsystems.com"
-Documentation = "https://docs.scaleoutsystems.com/en/stable/"
+Documentation = "https://docs.scaleoutsystems.com/en/latest/"
 
 [dependency-groups]
 dev = [

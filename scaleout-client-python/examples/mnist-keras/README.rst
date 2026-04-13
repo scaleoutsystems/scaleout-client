@@ -4,7 +4,7 @@ Scaleout Edge Project: Keras/Tensorflow (MNIST)
 Prerequisites
 -------------------------------------------
 
--  `Python >=3.9, <=3.12 <https://www.python.org/downloads>`__
+-  `Python >=3.11, <3.14 <https://www.python.org/downloads>`__
 
 Creating the compute package and seed model
 -------------------------------------------
@@ -17,11 +17,19 @@ recommend using a virtual environmnet
 .. code-block::
 .. code-block::
 
-  git clone https://github.com/scaleoutsystems/scaleout.git
-  cd scaleout/scaleout-client-python/examples/mnist-keras
+  git clone https://github.com/scaleoutsystems/scaleout-client.git
+  cd scaleout-client/scaleout-client-python/examples/mnist-keras
   python -m venv .venv
   source .venv/bin/activate
   pip install scaleout
+
+Login to Scaleout Edge:
+
+Before running any commands, login to your Scaleout Edge instance:
+
+.. code-block::
+
+   scaleout login <URL>
 
 Create the compute package:
 

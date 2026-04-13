@@ -1,7 +1,7 @@
 from config import settings
-from scaleout import APIClient
+from scaleout import Scaleout
 
-client = APIClient(
+client = Scaleout(
     host=settings["DISCOVER_HOST"],
     port=settings["DISCOVER_PORT"],
     secure=settings["SECURE"],
