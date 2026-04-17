@@ -28,14 +28,14 @@ Getting started
 Get started with Scaleout Edge in two steps:  
 
 1. Register for platform access at `Scaleout Edge Account <https://www.scaleoutsystems.com/pricing>`__
-2. Take the `Quickstart tutorial <https://docs.scaleoutsystems.com/en/stable/quickstart.html>`__
+2. Take the `Quickstart tutorial <https://docs.scaleoutsystems.com/en/latest/quickstart.html>`__
 
 Documentation
 =============
 
 More details about the architecture, deployment, and how to develop your own applications are found in the documentation:
 
--  `Documentation <https://docs.scaleoutsystems.com/en/stable>`__
+-  `Documentation <https://docs.scaleoutsystems.com/en/latest>`__
 
 Examples
 =====================
