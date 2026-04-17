@@ -75,7 +75,7 @@ Making contributions
 
 All pull requests will be considered and are much appreciated. For
 more details please refer to our `contribution
-guidelines <https://github.com/scaleoutsystems/scaleout-client/blob/master/CONTRIBUTING.md>`__.
+guidelines <https://github.com/scaleoutsystems/scaleout-client/blob/main/scaleout-client-python/CONTRIBUTING.md>`__.
 
 Relationship to Scaleout FEDn
 =============================
