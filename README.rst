@@ -35,7 +35,7 @@ Documentation
 
 More details about the architecture, deployment, and how to develop your own applications are found in the documentation:
 
--  `Documentation <https://docs.scaleoutsystems.com/en/latest>`__
+-  `Documentation <https://docs.scaleoutsystems.com>`__
 
 Examples
 =====================
@@ -43,12 +43,12 @@ Examples
 Our example projects demonstrate different use case scenarios of Scaleout Edge 
 and its integration with popular machine learning frameworks like PyTorch and TensorFlow.
 
-- `Using the Python SDK <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/api-tutorials>`__
-- `Federated Learning with PyTorch <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/mnist-pytorch>`__
-- `Federated Learning with Tensforflow/Keras <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/mnist-keras>`__
-- `Federated Learning with Hugging Face (Transformers) <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/huggingface>`__
-- `Federated Learning with self-supervised Learning <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/FedSimSiam>`__
-- `Federated Learning + Differential Privacy <https://github.com/scaleoutsystems/scaleout-client/tree/master/examples/mnist-pytorch-DPSGD>`__
+- `Using the Python SDK <https://github.com/scaleoutsystems/scaleout-client/tree/main/scaleout-client-python/examples/api-tutorials>`__
+- `Federated Learning with PyTorch <https://github.com/scaleoutsystems/scaleout-client/tree/main/scaleout-client-python/examples/mnist-pytorch>`__
+- `Federated Learning with TensorFlow/Keras <https://github.com/scaleoutsystems/scaleout-client/tree/main/scaleout-client-python/examples/mnist-keras>`__
+- `Federated Learning with Hugging Face (Transformers) <https://github.com/scaleoutsystems/scaleout-client/tree/main/scaleout-client-python/examples/huggingface>`__
+- `Federated Learning with self-supervised Learning <https://github.com/scaleoutsystems/scaleout-client/tree/main/scaleout-client-python/examples/FedSimSiam>`__
+- `Federated Learning + Differential Privacy <https://github.com/scaleoutsystems/scaleout-client/tree/main/scaleout-client-python/examples/mnist-pytorch-DPSGD>`__
 
 
 Deployment Options
@@ -68,14 +68,12 @@ Support
 Community support is available in our `Discord
 server <https://discord.gg/KMg4VwszAd>`__.
 
-Options are available for `Dedicated support <https://www.scaleoutsystems.com/start#pricing>`__.
-
 Making contributions
 ====================
 
 All pull requests will be considered and are much appreciated. For
 more details please refer to our `contribution
-guidelines <https://github.com/scaleoutsystems/scaleout-client/blob/main/scaleout-client-python/CONTRIBUTING.md>`__.
+guidelines <https://github.com/scaleoutsystems/scaleout-client/blob/main/CONTRIBUTING.md>`__.
 
 Relationship to Scaleout FEDn
 =============================
@@ -84,7 +82,7 @@ Scaleout Edge is the evolution of FEDn, the federated learning framework that Sc
 in Scaleout Edge. Core federated learning features include:
 
 - Tiered federated learning architecture enabling massive scalability and resilience. 
-- Support for any ML framework (examples for PyTorch, Tensforflow/Keras and Scikit-learn)
+- Support for any ML framework (examples for PyTorch, TensorFlow/Keras and Scikit-learn)
 - Extendable via a plug-in architecture (aggregators, load balancers, object storage backends, databases  etc.)
 - Built-in federated algorithms (FedAvg, FedAdam, FedYogi, FedAdaGrad, etc.)
 - UI, CLI and Python API.
@@ -110,4 +108,4 @@ License
 The Scaleout Edge SDK (this repository) is licensed under Apache-2.0 (see `LICENSE <LICENSE>`__ file for
 full information).
 
-Use of the Scaleout Edge platform is subject to the `Terms of Use <https://www.scaleoutsystems.com/terms>`__, see the Master Software License Agreement (MSLA) for full details.
+Use of the Scaleout Edge platform is subject to the `Terms of Use <https://www.scaleoutsystems.com/contact#legal>`__, see the Master Software License Agreement (MSLA) for full details.
