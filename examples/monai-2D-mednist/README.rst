@@ -92,7 +92,7 @@ Connecting clients:
 Connecting clients using Docker:
 ================================
 
-For convenience, there is a Docker image hosted on ghrc.io with fedn preinstalled. To start a client using Docker:
+For convenience, there is a Docker image hosted on ghcr.io with fedn preinstalled. To start a client using Docker:
 
 .. code-block::
 
