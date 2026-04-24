@@ -1,14 +1,5 @@
 # Security Policy
 
-## Supported Versions
-
-We actively maintain and patch the following versions of this project. Please ensure you are using one of these supported versions before reporting security issues.
-
-| Version | Supported          |
-| ------- | ------------------ |
-| >= 0.18.0   | :white_check_mark: |
-| <= 0.17.0   | :x:                |
-
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability, please follow these steps:
@@ -35,7 +26,7 @@ If you discover a security vulnerability, please follow these steps:
 
 While using this project, we recommend:
 - Keeping the project up-to-date (which in turn will keep dependencies up-to-date). If you install from source, don't forget to reinstall the project after a pull. 
-- Reviewing [our documentation](https://docs.scaleoutsystems.com/en/stable/) for secure configuration tips.
+- Reviewing [our documentation](https://docs.scaleoutsystems.com) for secure configuration tips.
 - Reporting issues responsibly.
 
 We thank you for helping us keep this project safe for the community!
