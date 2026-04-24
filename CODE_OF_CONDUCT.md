@@ -55,7 +55,7 @@ further defined and clarified by project maintainers.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by [opening a GitHub Issue](https://github.com/scaleoutsystems/fedn/issues/new/choose) or contacting the project maintainers directly through GitHub. All
+reported by [opening a GitHub Issue](https://github.com/scaleoutsystems/scaleout-client/issues/new/choose) or contacting the project maintainers directly through GitHub. All
 complaints will be reviewed and investigated and will result in a response that
 is deemed necessary and appropriate to the circumstances. The project team is
 obligated to maintain confidentiality with regard to the reporter of an incident.
