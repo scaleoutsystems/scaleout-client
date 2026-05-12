@@ -1,8 +1,0 @@
-data
-*.npz
-*.tgz
-*.tar.gz
-client*.yaml
-.venv
-package
-.scaleout

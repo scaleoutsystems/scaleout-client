@@ -16,11 +16,10 @@ import scaleoututil.grpc.scaleout_pb2 as scaleout_msg
 import scaleoututil.grpc.scaleout_pb2_grpc as rpc
 from scaleoututil.config import SCALEOUT_AUTH_SCHEME
 from scaleoututil.logging import ScaleoutLogger
-from scaleoututil.utils.checksum import compute_checksum_from_stream
 from scaleoututil.utils.model import ScaleoutModel
 
 if TYPE_CHECKING:
-    from scaleout.client.edge_client import EdgeClient  # not-floating-import
+    from scaleout.client.grpc_edge_client_runtime import GrpcEdgeClientRuntime  # not-floating-import
 
 # Keepalive settings: these help keep the connection open for long-lived clients
 CHUNK_SIZE = 32 * 1024  # 32KB
@@ -82,6 +81,10 @@ class RetryException(Exception):
     pass
 
 
+class MisconfigurationException(Exception):
+    pass
+
+
 def grpc_retry(
     max_retries: int = 3,
     base_retry_interval: float = 1.0,
@@ -125,8 +128,8 @@ def grpc_retry(
                     if status_code == grpc.StatusCode.UNAVAILABLE:
                         ScaleoutLogger().warning(f"GRPC ({func.__name__}): Server unavailable. Retrying in {retry_interval:.2f} seconds.")
                         ScaleoutLogger().debug(f"GRPC ({func.__name__}): Error details: {e.details()}")
-                        self._reconnect_channel()
                         time.sleep(retry_interval)
+                        self._reconnect_channel()
                         continue
                     if status_code == grpc.StatusCode.FAILED_PRECONDITION:
                         ScaleoutLogger().warning(f"GRPC ({func.__name__}): Failed precondition. Retrying in approx {retry_interval:.2f} seconds.")
@@ -142,8 +145,8 @@ def grpc_retry(
                         details = e.details()
                         if details == "Stream removed":
                             ScaleoutLogger().warning(f"GRPC ({func.__name__}): Stream removed. Retrying in approx {retry_interval:.2f} seconds.")
-                            self._reconnect_channel()
                             time.sleep(retry_interval)
+                            self._reconnect_channel()
                             continue
                         raise e
                     raise e
@@ -151,8 +154,8 @@ def grpc_retry(
                     ScaleoutLogger().warning(f"GRPC ({func.__name__}): An unknown error occurred: {e}.")
                     if isinstance(e, ValueError):
                         ScaleoutLogger().warning(f"GRPC ({func.__name__}): Retrying in approx {retry_interval:.2f} seconds.")
-                        self._reconnect_channel()
                         time.sleep(retry_interval)
+                        self._reconnect_channel()
                         continue
                     raise e
 
@@ -164,21 +167,10 @@ def grpc_retry(
     return decorator
 
 
-def compute_checksum(model_stream: BytesIO) -> str:
-    """Compute the checksum of a model.
-
-    :param model: The model to compute the checksum for.
-    :type model: BytesIO
-    :return: The checksum of the model.
-    :rtype: str
-    """
-    return compute_checksum_from_stream(model_stream)
-
-
 class GrpcHandler:
     """Handler for GRPC connections and operations."""
 
-    def __init__(self, client: "EdgeClient", host: str, port: int) -> None:
+    def __init__(self, client: "GrpcEdgeClientRuntime", host: str, port: int) -> None:
         """Initialize the GrpcHandler."""
         self.client = client
 
@@ -319,8 +311,8 @@ class GrpcHandler:
             callback(request)
 
     @grpc_retry(max_retries=-1)
-    def PollAndReport(self, report: scaleout_msg.ActivityReport) -> scaleout_msg.TaskRequest:
-        return self.combinerStub.PollAndReport(report, metadata=self.metadata)
+    def PollAndReportAsync(self, report: scaleout_msg.ClientReport) -> scaleout_msg.CombinerDirective:
+        return self.combinerStub.PollAndReportAsync(report, metadata=self.metadata)
 
     @grpc_retry(max_retries=5)
     def send_status(
@@ -425,6 +417,12 @@ class GrpcHandler:
         ScaleoutLogger().info("Downloading model from combiner.")
         part_iterator = self.modelStub.Download(request, metadata=self.metadata)
         model = ScaleoutModel.from_filechunk_stream(part_iterator)
+        if model.legacy_source:
+            # For legacy models loaded from raw binary streams without embedded metadata, we need to ensure the model_id is set correctly
+            model = model.to_builder().set_model_id(model_id).build()  # Ensure model_id is equal to requested model_id for legacy models
+        if model.model_id != model_id:
+            ScaleoutLogger().error("Model ID mismatch! Expected {}, got {}.".format(model_id, model.model_id))
+            raise MisconfigurationException("Model ID mismatch! Expected {}, got {}.".format(model_id, model.model_id))
         metadata = dict(part_iterator.trailing_metadata())
         server_checksum = metadata.get("checksum")
         if server_checksum:
@@ -516,27 +514,6 @@ class GrpcHandler:
         _ = self.combinerStub.SendModelValidation(validation, metadata=self.metadata)
         return True
 
-    @grpc_retry(max_retries=-1)
-    def send_model_prediction(
-        self,
-        model_id: str,
-        prediction_output: str,
-        correlation_id: str,
-        session_id: str,
-    ) -> bool:
-        """Send a model prediction to the combiner."""
-        prediction = scaleout_msg.ModelPrediction()
-        prediction.client_id = self.client_id
-        prediction.model_id = model_id
-        prediction.data = prediction_output
-        prediction.timestamp.GetCurrentTime()
-        prediction.correlation_id = correlation_id
-        prediction.session_id = session_id
-
-        ScaleoutLogger().info("Sending model prediction to combiner.")
-        _ = self.combinerStub.SendModelPrediction(prediction, metadata=self.metadata)
-        return True
-
     def _disconnect_channel(self) -> None:
         """Disconnect from the combiner."""
         self.channel.close()
@@ -545,7 +522,7 @@ class GrpcHandler:
     def _reconnect_channel(self) -> None:
         """Reconnect to the combiner."""
         self._disconnect_channel()
-        self._init_channel(self.host, self.port, self.token)
+        self._init_channel(self.host, self.port)
         self._init_stubs()
         ScaleoutLogger().debug("GRPC channel reconnected.")
 

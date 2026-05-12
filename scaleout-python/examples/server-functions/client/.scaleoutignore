@@ -1,6 +1,0 @@
-__pycache__
-.mnist-pytorch
-data
-*.tgz
-*.tar.gz
-*.zip

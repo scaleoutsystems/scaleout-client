@@ -8,6 +8,8 @@ The project extends our baseline MNIST PyTorch example by incorporating the Opac
 To learn more about Differential Privacy in federated learning, see our blog post:
 https://www.scaleoutsystems.com/post/guaranteeing-data-privacy-for-clients-in-federated-machine-learning
 
+**Note:** We recommend that all new users start by taking the Quickstart Tutorial:
+https://docs.scaleoutsystems.com/en/latest/quickstart.html
 
 
 Prerequisites
@@ -63,7 +65,7 @@ We recommend installing in a virtual environment.
 .. code-block::
 
    git clone https://github.com/scaleoutsystems/scaleout-client.git
-   cd scaleout-client/scaleout-client-python/examples/mnist-pytorch
+   cd scaleout-client/scaleout-client-python/examples/mnist-pytorch-DPSGD
    python -m venv .venv
    source .venv/bin/activate
    pip install scaleout

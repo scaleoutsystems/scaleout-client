@@ -28,7 +28,6 @@ class MyClient:
 
         client.set_train_callback(self.train)
         client.set_validate_callback(self.validate)
-        client.set_predict_callback(self.predict)
 
     def train(
         self,
@@ -179,27 +178,3 @@ class MyClient:
 
         return report
 
-    def predict(self, scaleout_model: ScaleoutModel, data_path=None):
-        """Predict on test data (or other data).
-
-        :param scaleout_model: The incoming model parameters.
-        :type scaleout_model: ScaleoutModel
-        :param data_path: The path to the data file.
-        :type data_path: str
-        :return: Dict with predictions.
-        :rtype: dict
-        """
-        # Using test data for prediction but another dataset could be loaded
-        x_test, _ = load_data(data_path, is_train=False)
-        x_test = x_test.to(self.device)
-
-        # Load model
-        model = load_parameters(scaleout_model)
-        model.to(self.device)
-        model.eval()
-
-        with torch.no_grad():
-            y_pred = model(x_test)
-            y_pred = torch.argmax(y_pred, dim=1)
-
-        return {"predictions": y_pred.cpu().tolist()}

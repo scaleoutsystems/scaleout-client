@@ -1,5 +1,5 @@
-Hugging Face Transformer Example
---------------------------------
+Scaleout Edge Project: Hugging Face
+-----------------------------------
 
 This is an example project that demonstrates how one can make use of the Hugging Face Transformers library in Scaleout Edge.
 In this example, a pre-trained BERT-tiny model from Hugging Face is fine-tuned to perform spam detection 
@@ -21,16 +21,23 @@ is able to detect spam emails on the test dataset with high accuracy.
 
 To run the example, follow the steps below. For a more detailed explanation, follow the documentation.
 
+**Note:** We recommend that all new users start by taking the Quickstart Tutorial:
+https://docs.scaleoutsystems.com/en/latest/quickstart.html
+
 Prerequisites
 -------------
 
 -  `Python >=3.11, <3.14 <https://www.python.org/downloads>`__
--  `A Scaleout Edge deployment  
+
 
 Creating the compute package and seed model
 -------------------------------------------
 
 Install scaleout: 
+
+Clone the Scaleout repository and locate into this example directory:
+
+We recommend installing in a virtual environment.
 
 .. code-block::
 
@@ -39,6 +46,7 @@ Install scaleout:
    python -m venv .venv
    source .venv/bin/activate
    pip install scaleout
+
 
 Login to Scaleout Edge:
 
@@ -54,14 +62,23 @@ Create the compute package:
 
    scaleout package create --path client
 
-This creates a file 'package.tgz' in the project folder.
+This creates a file ``package.tgz`` in the project folder.
 
-Next, generate the seed model:
+
+Next, generate a seed model (the first model in a global model trail).  
+Install dependencies and build the client:
 
 .. code-block::
 
+   scaleout run install --path client
    scaleout run build --path client
 
-This will create a model file 'seed.npz' in the root of the project.
+This will create a model file ``seed.npz`` in the root of the project.  
+This step will take a few minutes, depending on hardware and internet connection (builds a virtualenv).
 
-Follow the documentation in order to learn how to connect clients and run the training yourself. 
+
+Running the project on Scaleout Edge
+---------------------------
+
+To learn how to set up your Scaleout project and connect clients,
+take the quickstart tutorial: https://docs.scaleoutsystems.com/en/latest/quickstart.html

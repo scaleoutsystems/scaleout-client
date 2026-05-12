@@ -29,7 +29,7 @@ def save_parameters(model):
     """
     # Convert PyTorch state_dict to numpy arrays
     parameters_np = [val.cpu().numpy() for _, val in model.state_dict().items()]
-    return ScaleoutModel.from_model_params(parameters_np, helper)
+    return ScaleoutModel.from_training_model(parameters_np, helper)
 
 
 def load_parameters(scaleout_model: ScaleoutModel):
@@ -40,7 +40,7 @@ def load_parameters(scaleout_model: ScaleoutModel):
     :return: The loaded model.
     :rtype: torch.nn.Module
     """
-    weights = scaleout_model.get_model_params(helper)
+    weights = scaleout_model.get_training_model(helper)
     model = compile_model()
     
     # Convert numpy arrays back to PyTorch state_dict
