@@ -1,8 +1,0 @@
-data
-*.npz
-*.tgz
-*.tar.gz
-.mnist-pytorch
-client*.yaml
-!client_settings.yaml
-package

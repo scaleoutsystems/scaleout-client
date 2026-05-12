@@ -183,7 +183,7 @@ def _complement_client_params(config: dict) -> None:
 @click.option("--token", required=False, help="Authentication token (refresh token). Client will automatically exchange this for an access token.")
 @click.option("-n", "--name", required=False)
 @click.option("-i", "--client-id", required=False)
-@click.option("--local-package", is_flag=True, help="Enable local compute package")
+@click.option("--remote-package", is_flag=True, help="Download and extract compute package from server (managed python env is enabled by default)")
 @click.option(
     "--log-level",
     required=False,
@@ -199,7 +199,7 @@ def _complement_client_params(config: dict) -> None:
 @click.option("-hp", "--helper_type", required=False, default=None)
 @click.option("-in", "--init", required=False, default=None, help="Set to a filename to (re)init client from file state.")
 @click.option("--dispatcher", is_flag=True, help="Use the dispatcher client instead of the importer client.")
-@click.option("--managed-env", is_flag=True, help="Use the managed environment for the client. Requires an active virtual environment residing in cwd.")
+@click.option("--disable-managed-env", is_flag=True, help="Disable managed python environment when using --remote-package.")
 @click.pass_context
 def client_start_cmd(
     ctx,
@@ -208,7 +208,7 @@ def client_start_cmd(
     token: str,
     name: str,
     client_id: str,
-    local_package: bool,
+    remote_package: bool,
     log_level: str,
     preferred_combiner: str,
     combiner: str,
@@ -218,10 +218,11 @@ def client_start_cmd(
     helper_type: str,
     init: str,
     dispatcher: bool,
-    managed_env: bool = False,
+    disable_managed_env: bool = False,
 ):
     """Start client."""
-    package = "local" if local_package else "remote"
+    package = "remote" if remote_package else "local"
+    managed_env = remote_package and not disable_managed_env
 
     if log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
         click.echo(f"Invalid log level: {log_level}. Defaulting to INFO.")
@@ -383,6 +384,7 @@ def client_start_cmd(
             try:
                 token_cache.save(access_token, refresh_token, expires_at)
                 ScaleoutLogger().debug(f"Tokens updated in cache: {token_cache.cache_file}")
+                click.echo(f"Tokens updated in cache: {token_cache.cache_file}")
             except Exception as e:
                 click.echo(f"Warning: Failed to save tokens to cache: {e}")
 

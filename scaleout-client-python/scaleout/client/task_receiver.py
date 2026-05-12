@@ -1,7 +1,7 @@
 import json
 import threading
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
 import scaleoututil.grpc.scaleout_pb2 as scaleout_msg
 from scaleoututil.grpc.statustype import StatusType
@@ -9,7 +9,7 @@ from scaleoututil.logging import ScaleoutLogger
 import traceback
 
 if TYPE_CHECKING:
-    from scaleout.client.edge_client import EdgeClient  # not-floating-import
+    from scaleout.client.grpc_edge_client_runtime import GrpcEdgeClientRuntime  # not-floating-import
 
 
 class StoppedException(Exception):
@@ -34,13 +34,13 @@ class Task:
 
 
 class TaskReceiver:
-    def __init__(self, client: "EdgeClient", task_callback: callable, polling_interval: int = 5):
+    def __init__(self, client: "GrpcEdgeClientRuntime", task_callback: callable, polling_interval: int = 5):
         self.client = client
         self.task_callback = task_callback
 
         self.polling_interval = polling_interval
 
-        self._current_task: Task = None
+        self._current_tasks: List[Task] = []
 
         self._task_manager_thread = None
         self._task_manager_stop_event = threading.Event()
@@ -68,6 +68,20 @@ class TaskReceiver:
         """Nonblocking stop of the task polling thread."""
         self._task_manager_stop_event.set()
 
+    def get_current_task(self) -> Task:
+        """Get the current task for the current thread.
+
+        This function should be called from the task callback to get the current task.
+        If called from another thread, this function returns None.
+        """
+        with self._lock:
+            # We lock to ensure that the current task is not finished while we check it
+            for task in self._current_tasks:
+                with task.lock:
+                    if task.runner_thread == threading.current_thread():
+                        return task
+        return None
+
     def check_abort(self):
         """Check if the current task has been aborted.
 
@@ -75,23 +89,23 @@ class TaskReceiver:
         that the task can be interrupted if needed.
         If called from another thread, this function is a no-op.
         """
-        with self._lock:
-            # We lock to ensure that the current task is not finished while we check it
-            if self._current_task is not None and self._current_task.runner_thread == threading.current_thread():
-                with self._current_task.lock:
-                    if self._current_task.interrupted:
-                        raise StoppedException(self._current_task.interrupted_reason)
+        task = self.get_current_task()
+        if task is None:
+            return
+        with task.lock:
+            if task.interrupted:
+                raise StoppedException(task.interrupted_reason)
 
-    def abort_current_task(self):
-        """Abort the current task."""
+    def abort_all_current_tasks(self):
+        """Abort all current tasks."""
         with self._lock:
             # We lock to ensure that the current task is not finished while we check it
-            if self._current_task is not None:
-                with self._current_task.lock:
-                    # We lock to ensure that the current task does not recieve updates while we set the interrupted flag
-                    if not self._current_task.interrupted:
-                        self._current_task.interrupted = True
-                        self._current_task.interrupted_reason = "Aborted by client"
+            for task in self._current_tasks:
+                with task.lock:
+                    # We lock to ensure that the current task does not receive updates while we set the interrupted flag
+                    if not task.interrupted:
+                        task.interrupted = True
+                        task.interrupted_reason = "Aborted by client"
                 ScaleoutLogger().info("TaskReceiver: Aborting current task... ")
 
     def _run_task_polling(self):
@@ -102,63 +116,52 @@ class TaskReceiver:
                 if self._task_manager_stop_event.is_set():
                     ScaleoutLogger().info("TaskReceiver: Stopping task polling thread.")
                     break
-                report = scaleout_msg.ActivityReport()
-                report.node_id = self.client.client_id
-                if self._current_task is None:
-                    report.status = StatusType.EMPTY.value
-                else:
-                    with self._current_task.lock:
-                        report.status = self._current_task.status.value
-                        if self._current_task.response:
-                            report.response = json.dumps(self._current_task.response)
-                        report.correlation_id = self._current_task.correlation_id
-                        report.done = self._current_task.done
-                        # Relase task lock
 
-                if StatusType.matches(report.status, StatusType.EMPTY):
+                activities = self._get_current_activities()
+                report = scaleout_msg.ClientReport()
+                report.client_id = self.client.client_id
+                report.reports.extend(activities)
+                if len(activities) == 0:
                     ScaleoutLogger().debug("TaskReceiver: Nothing to report, Polling for task")
                 else:
-                    ScaleoutLogger().debug("TaskReceiver: Reporting: Task status %s", report.status)
+                    ScaleoutLogger().debug("TaskReceiver: Reporting %s tasks", len(activities))
 
-                task_request: scaleout_msg.TaskRequest = self.client.grpc_handler.PollAndReport(report)
+                directive: scaleout_msg.CombinerDirective = self.client.grpc_handler.PollAndReportAsync(report)
 
                 with self._lock:
                     # Lock when removing current task
-                    if report.done:
-                        # Task is reported done -- clear current task
-                        self._current_task = None
+                    for activity in activities:
+                        for task in self._current_tasks:
+                            if task.correlation_id == activity.correlation_id:
+                                if activity.done:
+                                    self._current_tasks.remove(task)
+                                break
 
-                if task_request.correlation_id:
-                    if self._current_task is not None:
-                        if self._current_task.correlation_id == task_request.correlation_id:
-                            # Received update to current task
+                for task_request in directive.tasks:
+                    task = self._get_task_by_correlation_id(task_request.correlation_id)
+                    if task is not None:
+                        # Update to existing task
+                        with task.lock:
                             if StatusType.matches(task_request.status, StatusType.INTERRUPTED):
-                                with self._current_task.lock:
-                                    if not self._current_task.interrupted:
-                                        self._current_task.interrupted = True
-                                        self._current_task.interrupted_reason = "Aborted by server"
-                                ScaleoutLogger().info("TaskReceiver: Received interrupt message for task %s.", self._current_task.correlation_id)
+                                if not task.interrupted:
+                                    task.interrupted = True
+                                    task.interrupted_reason = "Aborted by server"
+                                ScaleoutLogger().info("TaskReceiver: Received interrupt message for task %s.", task.correlation_id)
                             elif StatusType.matches(task_request.status, StatusType.TIMEOUT):
-                                with self._current_task.lock:
-                                    if not self._current_task.interrupted:
-                                        self._current_task.interrupted = True
-                                        self._current_task.interrupted_reason = "Timeout by server"
-                                ScaleoutLogger().info("TaskReceiver: Received timeout message for task %s.", self._current_task.correlation_id)
-                        else:
-                            ScaleoutLogger().warning(
-                                "TaskReceiver: Received new task %s while processing task %s. Ignoring new task.",
-                                task_request.correlation_id,
-                                self._current_task.correlation_id,
-                            )
+                                if not task.interrupted:
+                                    task.interrupted = True
+                                    task.interrupted_reason = "Timed out by server"
+                                ScaleoutLogger().info("TaskReceiver: Received timeout message for task %s.", task.correlation_id)
                     else:
                         # New task
                         with self._lock:
-                            # Lock to set current task
+                            # Lock to add new task
                             ScaleoutLogger().info("TaskReceiver: Got task %s", task_request.correlation_id)
-                            self._current_task = Task(task_request)
+                            new_task = Task(task_request)
+                            self._current_tasks.append(new_task)
                             # Run the task in a separate thread
-                            threading.Thread(target=self._run_task, args=(self._current_task,)).start()
-                # Wait for next polling interval
+                            threading.Thread(target=self._run_task, args=(new_task,)).start()
+
                 toc = time.time()
                 if toc - tic < self.polling_interval:
                     time.sleep(self.polling_interval - (toc - tic))
@@ -169,6 +172,28 @@ class TaskReceiver:
                 self._task_manager_stop_event.set()
                 break
         self._task_manager_stop_event.set()
+
+    def _get_current_activities(self) -> List[scaleout_msg.ActivityReport]:
+        activities = []
+        with self._lock:
+            for task in self._current_tasks:
+                with task.lock:
+                    report = scaleout_msg.ActivityReport()
+                    report.node_id = self.client.client_id
+                    report.status = task.status.value
+                    if task.response:
+                        report.response = json.dumps(task.response)
+                    report.correlation_id = task.correlation_id
+                    report.done = task.done
+                    activities.append(report)
+        return activities
+
+    def _get_task_by_correlation_id(self, correlation_id: str) -> Optional[Task]:
+        with self._lock:
+            for task in self._current_tasks:
+                if task.correlation_id == correlation_id:
+                    return task
+        return None
 
     def _run_task(self, task: Task):
         # This method runs in the task runner thread (Not the task manager thread)
@@ -209,15 +234,6 @@ class TaskReceiver:
                 pass
             self._task_manager_thread.join()
 
-    def wait_on_current_task(self):
-        current_task_thread = None
+    def has_current_tasks(self):
         with self._lock:
-            if self._current_task is not None and self._current_task.runner_thread is not None:
-                current_task_thread = self._current_task.runner_thread
-        if current_task_thread is not None:
-            while current_task_thread.is_alive():
-                current_task_thread.join(1)
-
-    def has_current_task(self):
-        with self._lock:
-            return self._current_task is not None
+            return len(self._current_tasks) > 0

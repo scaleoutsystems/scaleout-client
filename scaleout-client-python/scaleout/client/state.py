@@ -9,7 +9,6 @@ class ClientState(Enum):
     idle = 1
     training = 2
     validating = 3
-    predicting = 4
 
 
 def client_state_to_string(state: ClientState) -> str:
@@ -26,7 +25,5 @@ def client_state_to_string(state: ClientState) -> str:
         return "TRAINING"
     if state == ClientState.validating:
         return "VALIDATING"
-    if state == ClientState.predicting:
-        return "PREDICTING"
 
     return "UNKNOWN"

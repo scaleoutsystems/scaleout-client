@@ -85,7 +85,7 @@ class DispatcherClient:
                 return
         if self.client_obj.package == "remote":
             # Get access token from edge_client's TokenManager
-            access_token = self.edge_client._get_current_token() if self.edge_client else None
+            access_token = self.edge_client.get_access_token() if self.edge_client else None
             result = self._package_runtime.load_remote_compute_package(url=self.fedn_api_url, token=access_token)
             if not result:
                 return
@@ -110,7 +110,6 @@ class DispatcherClient:
 
         self.edge_client.set_train_callback(self.on_train)
         self.edge_client.set_validate_callback(self.on_validation)
-        self.edge_client.set_predict_callback(self._process_prediction_request)
 
         self.edge_client.set_name(self.client_obj.name)
         self.edge_client.set_client_id(self.client_obj.client_id)
@@ -184,27 +183,6 @@ class DispatcherClient:
 
         except Exception as e:
             ScaleoutLogger().warning(f"Validation failed with exception {e}")
-            metrics = None
-
-        return metrics
-
-    def _process_prediction_request(self, in_model: ScaleoutModel) -> Dict:
-        """Process a prediction request."""
-        try:
-            inpath = self.helper.get_tmp_path()
-            in_model.save_to_file(inpath)
-
-            outpath = get_tmp_path()
-            self._package_runtime.dispatcher.run_cmd(f"predict {inpath} {outpath}")
-
-            with open(outpath, "r") as fh:
-                metrics = json.load(fh)
-
-            os.unlink(inpath)
-            os.unlink(outpath)
-
-        except Exception as e:
-            ScaleoutLogger().warning(f"Prediction failed with exception {e}")
             metrics = None
 
         return metrics
