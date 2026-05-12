@@ -1,0 +1,10 @@
+name: .venv
+build_dependencies:
+  - pip
+  - setuptools
+  - wheel
+dependencies:
+  - scaleout
+  # PyTorch macOS x86 builds deprecation
+  - numpy==2.0.2; (sys_platform == "darwin" and platform_machine == "arm64") or (sys_platform == "win32" or sys_platform == "win64" or sys_platform == "linux")
+  - numpy==1.26.4; (sys_platform == "darwin" and platform_machine == "x86_64")

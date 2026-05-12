@@ -25,8 +25,6 @@ class MyClient:
         self.client = client
         client.set_train_callback(self.train)
         client.set_validate_callback(self.validate)
-        client.set_predict_callback(self.predict)
-        
 
     def train(self, scaleout_model: ScaleoutModel, settings, data_path=None, batch_size=32, epochs=5):
         """Complete a model update.
@@ -102,19 +100,7 @@ class MyClient:
 
         return report
 
-    def predict(self, scaleout_model: ScaleoutModel, data_path=None):
-        # Using test data for prediction but another dataset could be loaded
-        x_test, _ = load_data(data_path, is_train=False)
 
-        # Load model
-        model = load_parameters(scaleout_model)
-
-        # Predict
-        y_pred = model.predict(x_test)
-        y_pred = np.argmax(y_pred, axis=1)
-
-        return {"predictions": y_pred}
-    
 
 class AbortTrainingCallback(Callback):
     def __init__(self, EdgeClient):

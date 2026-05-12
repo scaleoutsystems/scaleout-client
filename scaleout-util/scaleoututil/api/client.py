@@ -3,7 +3,6 @@ import os
 import re
 from datetime import datetime
 from typing import Callable, Dict, Optional
-import uuid
 
 import requests
 
@@ -793,12 +792,12 @@ class Scaleout:
         status = self.get_session_status(id)
         return status and status.lower() == "finished"
 
-    def run_custom_command(self, command_type: str, blocking: bool = False, timeout: int = None, client_ids: list = None, parameters: dict = None):
+    def run_custom_command(self, command_type: str, synchronous: bool = False, timeout: int = None, client_ids: list = None, parameters: dict = None):
         if not command_type.startswith("Custom_"):
             command_type = "Custom_" + command_type
 
         url = self._get_url_api_v1("control/run_command")
-        data = {"command_type": command_type, "blocking": blocking, "timeout": timeout, "client_ids": client_ids, **(parameters or {})}
+        data = {"command_type": command_type, "synchronous": synchronous, "timeout": timeout, "client_ids": client_ids, "parameters": parameters or {}}
         response = requests.post(url, json=data, verify=self.verify, headers=self._get_headers())
         if response.status_code == 200:
             return response.json()
@@ -849,7 +848,7 @@ class Scaleout:
         :rtype: dict
         """
         if model_id is None:
-            additional_headers = {"X-Limit": "1", "X-Sort-Key": "committed_at", "X-Sort-Order": "desc"}
+            additional_headers = {"X-Limit": "1", "X-Sort-Key": "committed_at", "X-Sort-Order": "desc", "allow_training": "true"}
             response = requests.get(self._get_url_api_v1("models/"), verify=self.verify, headers=self._get_headers(additional_headers))
             if response.status_code == 200:
                 json = response.json()
@@ -1106,97 +1105,25 @@ class Scaleout:
 
         return _json
 
-        response = requests.get(self._get_url_api_v1("validations/count"), verify=self.verify, headers=self._get_headers())
-
-        _json = response.json()
-
-        return _json
-
-    # --- Predictions --- #
-
-    def get_predictions(
-        self,
-        model_id: str = None,
-        correlation_id: str = None,
-        client_id: str = None,
-        n_max: int = None,
-    ):
-        """Get predictions from the statestore. Filter by input parameters.
-
-        :param model_id: The model id to get predictions for.
-        :type model_id: str
-        :param correlation_id: The correlation id to get predictions for.
-        :type correlation_id: str
-        :param client_id: The client id to get predictions for.
-        :type client_id: str
-        :param n_max: The maximum number of predictions to get (If none all will be fetched).
-        :type n_max: int
-        :return: Predictions.
-        :rtype: dict
-        """
-        _params = {}
-
-        if model_id:
-            _params["model_id"] = model_id
-
-        if correlation_id:
-            _params["correlation_id"] = correlation_id
-
-        if client_id:
-            _params["client_id"] = client_id
-
-        additional_headers = {}
-        if n_max:
-            additional_headers["X-Limit"] = str(n_max)
-
-        response = requests.get(self._get_url_api_v1("predictions/"), params=_params, verify=self.verify, headers=self._get_headers(additional_headers))
-
-        _json = response.json()
-
-        return _json
-
-    def start_predictions(self, prediction_id: str = None, model_id: str = None):
-        """Start predictions for a model.
-
-        :param model_id: The model id to start predictions for.
-        :type model_id: str
-        :param data: The data to predict.
-        :type data: dict
-        :return: A dict with success or failure message.
-        :rtype: dict
-        """
-        if not prediction_id:
-            prediction_id = str(uuid.uuid4())
-        response = requests.post(
-            self._get_url_api_v1("predictions/start"),
-            json={"prediction_id": prediction_id, "model_id": model_id},
-            verify=self.verify,
-            headers=self._get_headers(),
-        )
-
-        _json = response.json()
-
-        return _json
-
     # --- Attributes --- #
 
-    def get_current_attributes(self, node_list):
-        """Get the current attributes of the node(s).
+    def get_current_attributes(self, entity_list):
+        """Get the current attributes of the entity(ies).
 
-        :param node_list: The list of nodes to get the attributes for or a single node_id (client_id or combiner_id)
-        :type node_list: list|str
-        :raises ValueError: If node_list is not a list or empty.
-        :return: The current attributes of the nodes.
+        :param entity_list: The list of entities to get the attributes for or a single entity_id (client_id or combiner_id)
+        :type entity_list: list|str
+        :raises ValueError: If entity_list is not a list or empty.
+        :return: The current attributes of the entities.
         :rtype: dict
         """
-        if not isinstance(node_list, list):
-            if isinstance(node_list, str):
-                node_list = [node_list]
+        if not isinstance(entity_list, list):
+            if isinstance(entity_list, str):
+                entity_list = [entity_list]
             else:
-                raise ValueError("node_list must be a list or string")
-        if len(node_list) == 0:
-            raise ValueError("node_list must not be empty")
-        json = {"node_ids": node_list}
+                raise ValueError("entity_list must be a list or string")
+        if len(entity_list) == 0:
+            raise ValueError("entity_list must not be empty")
+        json = {"node_ids": entity_list}
         response = requests.post(self._get_url_api_v1("attributes/current"), json=json, verify=self.verify, headers=self._get_headers())
         _json = response.json()
         return _json
@@ -1211,11 +1138,7 @@ class Scaleout:
            {
                "key": "charging",
                "value": "true",
-               "sender": {
-                   "name": "",
-                   "role": "",
-                   "client_id": "abc123"    # or "combiner_id": "abc123"
-               }
+               "entity_id": "client_123",
            }
 
         :return: Parsed JSON response from the server.
@@ -1250,22 +1173,22 @@ class Scaleout:
         response.raise_for_status()
         return response.json()
 
-    def get_attribute_trail(self, node_id: str):
+    def get_attribute_trail(self, entity_id: str):
         """Get the full attribute history for a given node.
 
-        :param node_id: The node_id (client or combiner) to fetch attributes for
-        :type node_id: str
-        :return: All matching attributes for the node
+        :param entity_id: The entity_id (client or combiner) to fetch attributes for
+        :type entity_id: str
+        :return: All matching attributes for the entity
         :rtype: dict
         """
-        if not isinstance(node_id, str) or not node_id:
+        if not isinstance(entity_id, str) or not entity_id:
             raise ValueError("node_id must be a non-empty string")
 
         # Reuse existing /attributes/list endpoint with a filter on node_id
         url = self._get_url_api_v1("attributes/list")
         response = requests.post(
             url,
-            json={"node_id": node_id},
+            json={"entity_id": entity_id},
             headers=self._get_headers(),
             verify=self.verify,
         )
@@ -1273,8 +1196,8 @@ class Scaleout:
         return response.json()
 
     ### Control Functions ###
-    def step_current_session(self):
-        """Continue a session control.
+    def step_current_command(self):
+        """Skip a synchronization barrier in a session control.
 
         :param session_id: The id of the session to continue.
         :type session_id: str
@@ -1291,7 +1214,7 @@ class Scaleout:
 
         return _json
 
-    def stop_current_session(self):
+    def stop_current_command(self):
         """Stop a session control.
 
         :param session_id: The id of the session to stop.
@@ -1301,6 +1224,93 @@ class Scaleout:
         """
         response = requests.post(
             self._get_url_api_v1("control/stop"),
+            verify=self.verify,
+            headers=self._get_headers(),
+        )
+
+        _json = response.json()
+
+        return _json
+
+    def step_command(self, correlation_id: str):
+        """Skip a synchronization barrier in a session control for a specific correlation id.
+
+        :param correlation_id: The correlation id of the command to step.
+        :type correlation_id: str
+        :return: A dict with success or failure message.
+        :rtype: dict
+        """
+        response = requests.post(
+            self._get_url_api_v1(f"commands/{correlation_id}/skip"),
+            json={"correlation_id": correlation_id},
+            verify=self.verify,
+            headers=self._get_headers(),
+        )
+
+        _json = response.json()
+
+        return _json
+
+    def stop_command(self, correlation_id: str):
+        """Stop a session control for a specific correlation id.
+
+        :param correlation_id: The correlation id of the command to stop.
+        :type correlation_id: str
+        :return: A dict with success or failure message.
+        :rtype: dict
+        """
+        response = requests.post(
+            self._get_url_api_v1(f"commands/{correlation_id}/stop"),
+            json={"correlation_id": correlation_id},
+            verify=self.verify,
+            headers=self._get_headers(),
+        )
+
+        _json = response.json()
+
+        return _json
+
+    # -- Model Staging and Inference --- #
+
+    def stage_model(self, model_id: str, client_ids: list = None):
+        """Stage a model to clients.
+
+        :param model_id: The id of the model to stage.
+        :type model_id: str
+        :param client_ids: The list of client ids to stage the model to (if None all clients will be staged).
+        :type client_ids: list
+        :return: A dict with success or failure message.
+        :rtype: dict
+        """
+        response = requests.post(
+            self._get_url_api_v1(f"models/{model_id}/stage"),
+            json={"client_ids": client_ids},
+            verify=self.verify,
+            headers=self._get_headers(),
+        )
+
+        _json = response.json()
+
+        return _json
+
+    def start_inference(self, model_id: str, synchronous: bool = True, timeout: int = None, client_ids: list = None, parameters: dict = None):
+        """Start an inference trail for a model.
+
+        :param model_id: The id of the model to start inference for.
+        :type model_id: str
+        :param parameters: The parameters for the inference.
+        :type parameters: dict
+        :param client_ids: The list of client ids to start inference on (if None all clients will be started).
+        :type client_ids: list
+        :param timeout: The timeout for the inference session in seconds, -1 for infinite (default: 180).
+        :type timeout: int
+        :param synchronous: Whether to run the inference synchronously (in order) or asynchronously (default: True).
+        :return: A dict with success or failure message.
+        :rtype: dict
+        """
+        response = requests.post(
+            self._get_url_api_v1("control/start_inference"),
+            json={"model_id": model_id, "synchronous": synchronous, "timeout": timeout, "parameters": parameters, "client_ids": client_ids},
             verify=self.verify,
             headers=self._get_headers(),
         )

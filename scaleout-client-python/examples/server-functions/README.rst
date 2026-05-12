@@ -1,18 +1,26 @@
 Scaleout Edge Project: Server functions
-==============================
+---------------------------------------
 
 This example demonstrates how to use custom server functions (in ``server_functions.py``) to:
 
-- **Leverage client attributes** to select specific clients for training _(see ``startup.py`` and ``server_functions.py``)_.
+- **Leverage client attributes** to select specific clients for training (see ``startup.py`` and ``server_functions.py``).
 - **Send dynamic, customizable payloads** from the server to clients via Python dictionaries.
 - **Implement custom aggregation logic**.
 
 Additionally, for large-scale experiments, ``sf_incremental_aggregation.py`` demonstrates
 **memory-safe incremental averaging** using server functions.
 
-For details on the functionality of server-functions see either the file server_functions.py, 
-the docs https://docs.scaleoutsystems.com/en/latest/serverfunctions.html or the youtube video 
+For details on the functionality of server-functions see either the file server_functions.py,
+the docs https://docs.scaleoutsystems.com/en/latest/serverfunctions.html or the youtube video
 https://www.youtube.com/watch?v=Rnfhfqy_Tts.
+
+**Note:** We recommend that all new users start by taking the Quickstart Tutorial:
+https://docs.scaleoutsystems.com/en/latest/quickstart.html
+
+Prerequisites
+-------------
+
+-  `Python >=3.11, <3.14 <https://www.python.org/downloads>`__
 
 To apply server-functionality in Scaleout Edge first connect to your project through the Scaleout.
 

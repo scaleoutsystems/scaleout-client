@@ -1,6 +1,5 @@
 import os
 
-
 SCALEOUT_ARCHIVE_DIR = os.environ.get("SCALEOUT_ARCHIVE_DIR", ".scaleout/archive")
 SCALEOUT_AUTH_SCHEME = os.environ.get("SCALEOUT_AUTH_SCHEME", "Bearer")
 SCALEOUT_AUTH_REFRESH_TOKEN_URI = os.environ.get("SCALEOUT_AUTH_REFRESH_TOKEN_URI", False)

@@ -47,7 +47,7 @@ def save_parameters(model: nn.Module) -> ScaleoutModel:
     """
     with torch.no_grad():
         parameters_np = [val.detach().cpu().numpy() for _, val in model.state_dict().items()]
-    return ScaleoutModel.from_model_params(parameters_np, helper)
+    return ScaleoutModel.from_training_model(parameters_np, helper)
 
 
 def load_parameters(scaleout_model: ScaleoutModel) -> nn.Module:
@@ -59,7 +59,7 @@ def load_parameters(scaleout_model: ScaleoutModel) -> nn.Module:
     :rtype: torch.nn.Module
     """
     model = compile_model()
-    parameters_np = scaleout_model.get_model_params(helper)
+    parameters_np = scaleout_model.get_training_model(helper)
 
     params_dict = zip(model.state_dict().keys(), parameters_np)
     state_dict = collections.OrderedDict(

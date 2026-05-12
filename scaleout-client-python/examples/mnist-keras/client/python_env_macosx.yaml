@@ -1,9 +1,0 @@
-name: .mnist-keras
-build_dependencies:
-  - pip
-  - setuptools
-  - wheel
-dependencies:
-  - tensorflow-macos
-  - tensorflow-metal
-  - scaleout

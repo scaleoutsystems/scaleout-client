@@ -79,7 +79,7 @@ class ImporterClient:
                 return
         if self.client_obj.package == "remote":
             # Get access token from edge_client's TokenManager
-            access_token = self.edge_client._get_current_token() if self.edge_client else None
+            access_token = self.edge_client.get_access_token() if self.edge_client else None
             success = self.package_runtime.load_remote_compute_package(url=self.fedn_api_url, token=access_token)
             if not success:
                 return

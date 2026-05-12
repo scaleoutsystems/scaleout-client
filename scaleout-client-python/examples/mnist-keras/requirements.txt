@@ -1,3 +1,0 @@
-tensorflow>=2.13.1
-fire==0.3.1
-docker==6.1.1

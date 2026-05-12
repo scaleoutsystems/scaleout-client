@@ -122,6 +122,7 @@ def start_session(
         model_query_headers["X-Limit"] = "1"
         model_query_headers["X-Sort-Key"] = "committed_at"
         model_query_headers["X-Sort-Order"] = "desc"
+        model_query_headers["allow_training"] = "true"
 
         url = get_api_url(base_url, "models/")
         response = requests.get(url, headers=model_query_headers)

@@ -14,7 +14,7 @@ def check_helper_config_file(config):
     try:
         helper = control["helper"]
     except KeyError:
-        click.secho("--local-package was used, but no helper was found in --init settings file.", fg="red")
+        click.secho("No helper found in --init settings file.", fg="red")
         exit(-1)
     return helper
 

@@ -40,7 +40,7 @@ def save_parameters(model):
     :type model: keras.model.Sequential
     """
     weights = model.get_weights()
-    return ScaleoutModel.from_model_params(weights, helper)
+    return ScaleoutModel.from_training_model(weights, helper)
 
 
 def load_parameters(scaleout_model: ScaleoutModel):
@@ -51,7 +51,7 @@ def load_parameters(scaleout_model: ScaleoutModel):
     :return: The loaded model.
     :rtype: keras.model.Sequential
     """
-    weights = scaleout_model.get_model_params(helper)
+    weights = scaleout_model.get_training_model(helper)
     model = compile_model()
     model.set_weights(weights)
     return model

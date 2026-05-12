@@ -4,6 +4,7 @@ from typing import Union
 
 class StatusType(Enum):
     EMPTY = ""
+    CREATED = "CREATED"
     COMPLETED = "COMPLETED"
     PENDING = "PENDING"
     RUNNING = "RUNNING"
@@ -11,6 +12,7 @@ class StatusType(Enum):
     INTERRUPTED = "INTERRUPTED"
     NEW = "NEW"
     TIMEOUT = "TIMEOUT"
+    UNKNOWN = "UNKNOWN"
 
     @classmethod
     def matches(cls, status1: Union["StatusType", str], status2: Union["StatusType", str]) -> bool:
@@ -20,6 +22,19 @@ class StatusType(Enum):
         if isinstance(status2, str):
             status2 = cls.from_string(status2)
         return status1 == status2
+
+    @classmethod
+    def in_(cls, status: Union["StatusType", str], valid_statuses: list[Union["StatusType", str]]) -> bool:
+        """Check if a status is in a list of valid statuses, regardless of whether they are strings or StatusType enums."""
+        if isinstance(status, str):
+            status = cls.from_string(status)
+        valid_statuses_converted = []
+        for s in valid_statuses:
+            if isinstance(s, str):
+                valid_statuses_converted.append(cls.from_string(s))
+            else:
+                valid_statuses_converted.append(s)
+        return status in valid_statuses_converted
 
     @classmethod
     def from_string(cls, status_str: str) -> "StatusType":
