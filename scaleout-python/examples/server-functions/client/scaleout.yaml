@@ -1,0 +1,6 @@
+python_env: python_env.yaml
+entry_points:
+  build:
+    model.py
+  startup:
+    startup.py

@@ -1,0 +1,6 @@
+__pycache__
+.huggingface
+data
+*.tgz
+*.tar.gz
+*.zip

@@ -2,9 +2,11 @@ from enum import Enum
 
 
 class TaskType(Enum):
-    ModelUpdate = "Fedn_ModelUpdate"
-    Prediction = "Fedn_Prediction"
-    Validation = "Fedn_Validation"
+    ModelUpdate = "Scaleout_ModelUpdate"
+    Validation = "Scaleout_Validation"
+
+    StageModel = "Scaleout_StageModel"
+    Inference = "Scaleout_Inference"
 
     @staticmethod
     def is_valid_task(task: str) -> bool:
@@ -24,11 +26,11 @@ class TaskType(Enum):
         return False
 
     @staticmethod
-    def is_fedn_task(task: str) -> bool:
-        """Check if the task is a FedN task.
+    def is_scaleout_task(task: str) -> bool:
+        """Check if the task is a Scaleout task.
 
         :param task: The task to check.
-        :return: True if the task is a FedN task, False otherwise.
+        :return: True if the task is a Scaleout task, False otherwise.
         """
         if isinstance(task, TaskType):
             return True

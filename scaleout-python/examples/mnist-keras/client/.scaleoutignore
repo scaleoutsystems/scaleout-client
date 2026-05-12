@@ -1,0 +1,6 @@
+__pycache__
+.mnist-keras
+data
+*.tgz
+*.tar.gz
+*.zip

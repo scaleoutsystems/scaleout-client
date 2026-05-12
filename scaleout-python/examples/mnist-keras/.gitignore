@@ -1,0 +1,7 @@
+data
+*.npz
+*.tgz
+*.tar.gz
+.mnist-keras
+client.yaml
+package

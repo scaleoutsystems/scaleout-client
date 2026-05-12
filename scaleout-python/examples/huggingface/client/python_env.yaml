@@ -1,0 +1,16 @@
+name: .huggingface
+build_dependencies:
+  - pip
+  - setuptools
+  - wheel
+dependencies:
+  - torch==2.4.1; (sys_platform == "darwin" and platform_machine == "arm64") or (sys_platform == "win32" or sys_platform == "win64" or sys_platform == "linux")
+  # PyTorch macOS x86 builds deprecation
+  - torch==2.2.2; sys_platform == "darwin" and platform_machine == "x86_64"
+  - torchvision==0.19.1; (sys_platform == "darwin" and platform_machine == "arm64") or (sys_platform == "win32" or sys_platform == "win64" or sys_platform == "linux")
+  - torchvision==0.17.2; sys_platform == "darwin" and platform_machine == "x86_64"
+  - numpy==2.0.2; (sys_platform == "darwin" and platform_machine == "arm64") or (sys_platform == "win32" or sys_platform == "win64" or sys_platform == "linux")
+  - numpy==1.26.4; (sys_platform == "darwin" and platform_machine == "x86_64")
+  - transformers
+  - datasets
+  - scaleout

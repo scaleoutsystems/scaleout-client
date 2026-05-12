@@ -52,16 +52,6 @@ message ModelValidation {
   string session_id = 8;
 }
 
-message ModelPrediction {
-  string client_id = 1;
-  string model_id = 3;
-  string data = 4;
-  string correlation_id = 5;
-  google.protobuf.Timestamp timestamp = 6;
-  string session_id = 8;
-}
-
-
 message ModelMetric {
   string client_id = 1;
   repeated MetricElem metrics = 2;
@@ -140,18 +130,26 @@ message ClientAnnounceRequest {
   string parameters = 3;
 }
 
+message ClientReport {
+  string client_id = 1;
+  repeated ActivityReport reports = 2;
+}
+
+message CombinerDirective {
+  repeated TaskRequest tasks = 1;
+}
+
 
 service CombinerClient {
     rpc SendModelUpdate (ModelUpdate) returns (Response);
     rpc SendModelValidation (ModelValidation) returns (Response);
-    rpc SendModelPrediction (ModelPrediction) returns (Response);
     rpc SendModelMetric(ModelMetric) returns (Response);
     rpc SendAttributeMessage(AttributeMessage) returns (Response);
     rpc SendTelemetryMessage(TelemetryMessage) returns (Response);
 
     rpc Announce(ClientAnnounceRequest) returns (Response);
 
-    rpc PollAndReport(ActivityReport) returns (TaskRequest);
+    rpc PollAndReportAsync(ClientReport) returns (CombinerDirective);
 
     // Status endpoint
     rpc SendStatus (Status) returns (Response);

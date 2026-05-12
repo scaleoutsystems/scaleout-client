@@ -71,6 +71,7 @@ api_client: Scaleout = _ScaleoutProxy()
 _COMBINER_NAME: Optional[str] = None
 _COMBINER_ID: Optional[str] = None
 
+
 # combiner id can be useful e.g. for sharing attributes across sessions and combiners using the api client
 def get_combiner_name() -> str:
     """Return the ID of the current combiner.
@@ -108,6 +109,7 @@ def _resolve_combiner_id() -> Optional[str]:
         ScaleoutLogger().warning(f"Failed to resolve combiner ID: {e}")
     return None
 
+
 def print(*args, **kwargs):
     global _COMBINER_ID
     if _COMBINER_ID is None:
@@ -118,21 +120,10 @@ def print(*args, **kwargs):
     MAX_LEN = 255
 
     if len(message) > MAX_LEN:
-        safe_message = (
-            message[:200] +
-            f"... [truncated, total length={len(message)}]"
-        )
+        safe_message = message[:200] + f"... [truncated, total length={len(message)}]"
     else:
         safe_message = message
 
     ScaleoutLogger().info(message)
 
-    api_client.add_status({
-        "status": safe_message,
-        "log_level": "INFO",
-        "type": "PRINT",
-        "sender": {
-            "combiner_id": _COMBINER_ID
-        }
-    })
-
+    api_client.add_status({"status": safe_message, "log_level": "INFO", "type": "PRINT", "sender": {"combiner_id": _COMBINER_ID}})

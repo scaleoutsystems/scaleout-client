@@ -1,0 +1,9 @@
+name: .mnist-keras
+build_dependencies:
+  - pip
+  - setuptools
+  - wheel
+dependencies:
+  - tensorflow>=2.13.1
+  - fire==0.3.1
+  - scaleout

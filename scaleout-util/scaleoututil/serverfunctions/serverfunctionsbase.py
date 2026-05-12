@@ -9,7 +9,6 @@ from enum import Enum
 class RoundType(Enum):
     TRAINING = "training"
     VALIDATION = "validation"
-    PREDICTION = "prediction"
 
 
 class ServerFunctionsBase(ABC):

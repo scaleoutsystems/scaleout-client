@@ -26,17 +26,17 @@ from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__
 from google.protobuf import wrappers_pb2 as google_dot_protobuf_dot_wrappers__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n scaleoututil/grpc/scaleout.proto\x12\x08scaleout\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"0\n\x08Response\x12\x10\n\x08response\x18\x01 \x01(\t\x12\x12\n\nparameters\x18\x02 \x01(\t\"\x8f\x01\n\x06Status\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12%\n\tlog_level\x18\x03 \x01(\x0e\x32\x12.scaleout.LogLevel\x12-\n\ttimestamp\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0c\n\x04type\x18\x07 \x01(\t\"\xd6\x01\n\x0bModelUpdate\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x10\n\x08model_id\x18\x03 \x01(\t\x12\x17\n\x0fmodel_update_id\x18\x04 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x05 \x01(\t\x12-\n\ttimestamp\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0c\n\x04meta\x18\x07 \x01(\t\x12\x0e\n\x06\x63onfig\x18\x08 \x01(\t\x12\x10\n\x08round_id\x18\t \x01(\t\x12\x12\n\nsession_id\x18\n \x01(\t\"\x9f\x01\n\x0fModelValidation\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x10\n\x08model_id\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x05 \x01(\t\x12-\n\ttimestamp\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nsession_id\x18\x08 \x01(\t\"\x9f\x01\n\x0fModelPrediction\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x10\n\x08model_id\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x05 \x01(\t\x12-\n\ttimestamp\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nsession_id\x18\x08 \x01(\t\"\xda\x01\n\x0bModelMetric\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12%\n\x07metrics\x18\x02 \x03(\x0b\x32\x14.scaleout.MetricElem\x12-\n\ttimestamp\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12*\n\x04step\x18\x04 \x01(\x0b\x32\x1c.google.protobuf.UInt32Value\x12\x10\n\x08model_id\x18\x05 \x01(\t\x12\x10\n\x08round_id\x18\x06 \x01(\t\x12\x12\n\nsession_id\x18\x07 \x01(\t\"(\n\nMetricElem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02\"\x81\x01\n\x10\x41ttributeMessage\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12+\n\nattributes\x18\x02 \x03(\x0b\x32\x17.scaleout.AttributeElem\x12-\n\ttimestamp\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"+\n\rAttributeElem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"\x82\x01\n\x10TelemetryMessage\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12,\n\x0btelemetries\x18\x02 \x03(\x0b\x32\x17.scaleout.TelemetryElem\x12-\n\ttimestamp\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"+\n\rTelemetryElem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02\"\xaf\x01\n\x0bTaskRequest\x12\x10\n\x08model_id\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x05 \x01(\t\x12\x11\n\ttimestamp\x18\x06 \x01(\t\x12\x12\n\nsession_id\x18\x08 \x01(\t\x12\x10\n\x08round_id\x18\n \x01(\t\x12\x0c\n\x04type\x18\x0b \x01(\t\x12\x0e\n\x06status\x18\x0c \x01(\t\x12\x11\n\tclient_id\x18\x01 \x01(\t\"i\n\x0e\x41\x63tivityReport\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x02 \x01(\t\x12\x0e\n\x06status\x18\x03 \x01(\t\x12\x0c\n\x04\x64one\x18\x04 \x01(\x08\x12\x10\n\x08response\x18\x05 \x01(\t\"S\n\tHeartbeat\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x1a\n\x12memory_utilisation\x18\x02 \x01(\x02\x12\x17\n\x0f\x63pu_utilisation\x18\x03 \x01(\x02\"L\n\x16\x43lientAvailableMessage\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\t\x12\x11\n\ttimestamp\x18\x03 \x01(\t\"L\n\x15\x43lientAnnounceRequest\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x12\n\nparameters\x18\x03 \x01(\t\" \n\x0cModelRequest\x12\x10\n\x08model_id\x18\x03 \x01(\t\"\x19\n\tFileChunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"G\n\rModelResponse\x12%\n\x06status\x18\x03 \x01(\x0e\x32\x15.scaleout.ModelStatus\x12\x0f\n\x07message\x18\x04 \x01(\t*L\n\x08LogLevel\x12\x08\n\x04NONE\x10\x00\x12\x08\n\x04INFO\x10\x01\x12\t\n\x05\x44\x45\x42UG\x10\x02\x12\x0b\n\x07WARNING\x10\x03\x12\t\n\x05\x45RROR\x10\x04\x12\t\n\x05\x41UDIT\x10\x05*?\n\x0bModelStatus\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0f\n\x0bIN_PROGRESS\x10\x01\x12\x06\n\x02OK\x10\x02\x12\n\n\x06\x46\x41ILED\x10\x03\x32\xe2\x05\n\x0e\x43ombinerClient\x12<\n\x0fSendModelUpdate\x12\x15.scaleout.ModelUpdate\x1a\x12.scaleout.Response\x12\x44\n\x13SendModelValidation\x12\x19.scaleout.ModelValidation\x1a\x12.scaleout.Response\x12\x44\n\x13SendModelPrediction\x12\x19.scaleout.ModelPrediction\x1a\x12.scaleout.Response\x12<\n\x0fSendModelMetric\x12\x15.scaleout.ModelMetric\x1a\x12.scaleout.Response\x12\x46\n\x14SendAttributeMessage\x12\x1a.scaleout.AttributeMessage\x1a\x12.scaleout.Response\x12\x46\n\x14SendTelemetryMessage\x12\x1a.scaleout.TelemetryMessage\x1a\x12.scaleout.Response\x12?\n\x08\x41nnounce\x12\x1f.scaleout.ClientAnnounceRequest\x1a\x12.scaleout.Response\x12@\n\rPollAndReport\x12\x18.scaleout.ActivityReport\x1a\x15.scaleout.TaskRequest\x12\x32\n\nSendStatus\x12\x10.scaleout.Status\x1a\x12.scaleout.Response\x12\x38\n\rSendHeartbeat\x12\x13.scaleout.Heartbeat\x1a\x12.scaleout.Response\x12G\n\nTaskStream\x12 .scaleout.ClientAvailableMessage\x1a\x15.scaleout.TaskRequest0\x01\x32\x83\x01\n\x0cModelService\x12\x38\n\x06Upload\x12\x13.scaleout.FileChunk\x1a\x17.scaleout.ModelResponse(\x01\x12\x39\n\x08\x44ownload\x12\x16.scaleout.ModelRequest\x1a\x13.scaleout.FileChunk0\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n scaleoututil/grpc/scaleout.proto\x12\x08scaleout\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"0\n\x08Response\x12\x10\n\x08response\x18\x01 \x01(\t\x12\x12\n\nparameters\x18\x02 \x01(\t\"\x8f\x01\n\x06Status\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12%\n\tlog_level\x18\x03 \x01(\x0e\x32\x12.scaleout.LogLevel\x12-\n\ttimestamp\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0c\n\x04type\x18\x07 \x01(\t\"\xd6\x01\n\x0bModelUpdate\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x10\n\x08model_id\x18\x03 \x01(\t\x12\x17\n\x0fmodel_update_id\x18\x04 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x05 \x01(\t\x12-\n\ttimestamp\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0c\n\x04meta\x18\x07 \x01(\t\x12\x0e\n\x06\x63onfig\x18\x08 \x01(\t\x12\x10\n\x08round_id\x18\t \x01(\t\x12\x12\n\nsession_id\x18\n \x01(\t\"\x9f\x01\n\x0fModelValidation\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x10\n\x08model_id\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x05 \x01(\t\x12-\n\ttimestamp\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nsession_id\x18\x08 \x01(\t\"\xda\x01\n\x0bModelMetric\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12%\n\x07metrics\x18\x02 \x03(\x0b\x32\x14.scaleout.MetricElem\x12-\n\ttimestamp\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12*\n\x04step\x18\x04 \x01(\x0b\x32\x1c.google.protobuf.UInt32Value\x12\x10\n\x08model_id\x18\x05 \x01(\t\x12\x10\n\x08round_id\x18\x06 \x01(\t\x12\x12\n\nsession_id\x18\x07 \x01(\t\"(\n\nMetricElem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02\"\x81\x01\n\x10\x41ttributeMessage\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12+\n\nattributes\x18\x02 \x03(\x0b\x32\x17.scaleout.AttributeElem\x12-\n\ttimestamp\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"+\n\rAttributeElem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"\x82\x01\n\x10TelemetryMessage\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12,\n\x0btelemetries\x18\x02 \x03(\x0b\x32\x17.scaleout.TelemetryElem\x12-\n\ttimestamp\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"+\n\rTelemetryElem\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02\"\xaf\x01\n\x0bTaskRequest\x12\x10\n\x08model_id\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x05 \x01(\t\x12\x11\n\ttimestamp\x18\x06 \x01(\t\x12\x12\n\nsession_id\x18\x08 \x01(\t\x12\x10\n\x08round_id\x18\n \x01(\t\x12\x0c\n\x04type\x18\x0b \x01(\t\x12\x0e\n\x06status\x18\x0c \x01(\t\x12\x11\n\tclient_id\x18\x01 \x01(\t\"i\n\x0e\x41\x63tivityReport\x12\x0f\n\x07node_id\x18\x01 \x01(\t\x12\x16\n\x0e\x63orrelation_id\x18\x02 \x01(\t\x12\x0e\n\x06status\x18\x03 \x01(\t\x12\x0c\n\x04\x64one\x18\x04 \x01(\x08\x12\x10\n\x08response\x18\x05 \x01(\t\"S\n\tHeartbeat\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x1a\n\x12memory_utilisation\x18\x02 \x01(\x02\x12\x17\n\x0f\x63pu_utilisation\x18\x03 \x01(\x02\"L\n\x16\x43lientAvailableMessage\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\t\x12\x11\n\ttimestamp\x18\x03 \x01(\t\"L\n\x15\x43lientAnnounceRequest\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x12\n\nparameters\x18\x03 \x01(\t\"L\n\x0c\x43lientReport\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12)\n\x07reports\x18\x02 \x03(\x0b\x32\x18.scaleout.ActivityReport\"9\n\x11\x43ombinerDirective\x12$\n\x05tasks\x18\x01 \x03(\x0b\x32\x15.scaleout.TaskRequest\" \n\x0cModelRequest\x12\x10\n\x08model_id\x18\x03 \x01(\t\"\x19\n\tFileChunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"G\n\rModelResponse\x12%\n\x06status\x18\x03 \x01(\x0e\x32\x15.scaleout.ModelStatus\x12\x0f\n\x07message\x18\x04 \x01(\t*L\n\x08LogLevel\x12\x08\n\x04NONE\x10\x00\x12\x08\n\x04INFO\x10\x01\x12\t\n\x05\x44\x45\x42UG\x10\x02\x12\x0b\n\x07WARNING\x10\x03\x12\t\n\x05\x45RROR\x10\x04\x12\t\n\x05\x41UDIT\x10\x05*?\n\x0bModelStatus\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0f\n\x0bIN_PROGRESS\x10\x01\x12\x06\n\x02OK\x10\x02\x12\n\n\x06\x46\x41ILED\x10\x03\x32\xa5\x05\n\x0e\x43ombinerClient\x12<\n\x0fSendModelUpdate\x12\x15.scaleout.ModelUpdate\x1a\x12.scaleout.Response\x12\x44\n\x13SendModelValidation\x12\x19.scaleout.ModelValidation\x1a\x12.scaleout.Response\x12<\n\x0fSendModelMetric\x12\x15.scaleout.ModelMetric\x1a\x12.scaleout.Response\x12\x46\n\x14SendAttributeMessage\x12\x1a.scaleout.AttributeMessage\x1a\x12.scaleout.Response\x12\x46\n\x14SendTelemetryMessage\x12\x1a.scaleout.TelemetryMessage\x1a\x12.scaleout.Response\x12?\n\x08\x41nnounce\x12\x1f.scaleout.ClientAnnounceRequest\x1a\x12.scaleout.Response\x12I\n\x12PollAndReportAsync\x12\x16.scaleout.ClientReport\x1a\x1b.scaleout.CombinerDirective\x12\x32\n\nSendStatus\x12\x10.scaleout.Status\x1a\x12.scaleout.Response\x12\x38\n\rSendHeartbeat\x12\x13.scaleout.Heartbeat\x1a\x12.scaleout.Response\x12G\n\nTaskStream\x12 .scaleout.ClientAvailableMessage\x1a\x15.scaleout.TaskRequest0\x01\x32\x83\x01\n\x0cModelService\x12\x38\n\x06Upload\x12\x13.scaleout.FileChunk\x1a\x17.scaleout.ModelResponse(\x01\x12\x39\n\x08\x44ownload\x12\x16.scaleout.ModelRequest\x1a\x13.scaleout.FileChunk0\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'scaleoututil.grpc.scaleout_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_LOGLEVEL']._serialized_start=2126
-  _globals['_LOGLEVEL']._serialized_end=2202
-  _globals['_MODELSTATUS']._serialized_start=2204
-  _globals['_MODELSTATUS']._serialized_end=2267
+  _globals['_LOGLEVEL']._serialized_start=2101
+  _globals['_LOGLEVEL']._serialized_end=2177
+  _globals['_MODELSTATUS']._serialized_start=2179
+  _globals['_MODELSTATUS']._serialized_end=2242
   _globals['_RESPONSE']._serialized_start=111
   _globals['_RESPONSE']._serialized_end=159
   _globals['_STATUS']._serialized_start=162
@@ -45,38 +45,40 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_MODELUPDATE']._serialized_end=522
   _globals['_MODELVALIDATION']._serialized_start=525
   _globals['_MODELVALIDATION']._serialized_end=684
-  _globals['_MODELPREDICTION']._serialized_start=687
-  _globals['_MODELPREDICTION']._serialized_end=846
-  _globals['_MODELMETRIC']._serialized_start=849
-  _globals['_MODELMETRIC']._serialized_end=1067
-  _globals['_METRICELEM']._serialized_start=1069
-  _globals['_METRICELEM']._serialized_end=1109
-  _globals['_ATTRIBUTEMESSAGE']._serialized_start=1112
-  _globals['_ATTRIBUTEMESSAGE']._serialized_end=1241
-  _globals['_ATTRIBUTEELEM']._serialized_start=1243
-  _globals['_ATTRIBUTEELEM']._serialized_end=1286
-  _globals['_TELEMETRYMESSAGE']._serialized_start=1289
-  _globals['_TELEMETRYMESSAGE']._serialized_end=1419
-  _globals['_TELEMETRYELEM']._serialized_start=1421
-  _globals['_TELEMETRYELEM']._serialized_end=1464
-  _globals['_TASKREQUEST']._serialized_start=1467
-  _globals['_TASKREQUEST']._serialized_end=1642
-  _globals['_ACTIVITYREPORT']._serialized_start=1644
-  _globals['_ACTIVITYREPORT']._serialized_end=1749
-  _globals['_HEARTBEAT']._serialized_start=1751
-  _globals['_HEARTBEAT']._serialized_end=1834
-  _globals['_CLIENTAVAILABLEMESSAGE']._serialized_start=1836
-  _globals['_CLIENTAVAILABLEMESSAGE']._serialized_end=1912
-  _globals['_CLIENTANNOUNCEREQUEST']._serialized_start=1914
-  _globals['_CLIENTANNOUNCEREQUEST']._serialized_end=1990
-  _globals['_MODELREQUEST']._serialized_start=1992
-  _globals['_MODELREQUEST']._serialized_end=2024
-  _globals['_FILECHUNK']._serialized_start=2026
-  _globals['_FILECHUNK']._serialized_end=2051
-  _globals['_MODELRESPONSE']._serialized_start=2053
-  _globals['_MODELRESPONSE']._serialized_end=2124
-  _globals['_COMBINERCLIENT']._serialized_start=2270
-  _globals['_COMBINERCLIENT']._serialized_end=3008
-  _globals['_MODELSERVICE']._serialized_start=3011
-  _globals['_MODELSERVICE']._serialized_end=3142
+  _globals['_MODELMETRIC']._serialized_start=687
+  _globals['_MODELMETRIC']._serialized_end=905
+  _globals['_METRICELEM']._serialized_start=907
+  _globals['_METRICELEM']._serialized_end=947
+  _globals['_ATTRIBUTEMESSAGE']._serialized_start=950
+  _globals['_ATTRIBUTEMESSAGE']._serialized_end=1079
+  _globals['_ATTRIBUTEELEM']._serialized_start=1081
+  _globals['_ATTRIBUTEELEM']._serialized_end=1124
+  _globals['_TELEMETRYMESSAGE']._serialized_start=1127
+  _globals['_TELEMETRYMESSAGE']._serialized_end=1257
+  _globals['_TELEMETRYELEM']._serialized_start=1259
+  _globals['_TELEMETRYELEM']._serialized_end=1302
+  _globals['_TASKREQUEST']._serialized_start=1305
+  _globals['_TASKREQUEST']._serialized_end=1480
+  _globals['_ACTIVITYREPORT']._serialized_start=1482
+  _globals['_ACTIVITYREPORT']._serialized_end=1587
+  _globals['_HEARTBEAT']._serialized_start=1589
+  _globals['_HEARTBEAT']._serialized_end=1672
+  _globals['_CLIENTAVAILABLEMESSAGE']._serialized_start=1674
+  _globals['_CLIENTAVAILABLEMESSAGE']._serialized_end=1750
+  _globals['_CLIENTANNOUNCEREQUEST']._serialized_start=1752
+  _globals['_CLIENTANNOUNCEREQUEST']._serialized_end=1828
+  _globals['_CLIENTREPORT']._serialized_start=1830
+  _globals['_CLIENTREPORT']._serialized_end=1906
+  _globals['_COMBINERDIRECTIVE']._serialized_start=1908
+  _globals['_COMBINERDIRECTIVE']._serialized_end=1965
+  _globals['_MODELREQUEST']._serialized_start=1967
+  _globals['_MODELREQUEST']._serialized_end=1999
+  _globals['_FILECHUNK']._serialized_start=2001
+  _globals['_FILECHUNK']._serialized_end=2026
+  _globals['_MODELRESPONSE']._serialized_start=2028
+  _globals['_MODELRESPONSE']._serialized_end=2099
+  _globals['_COMBINERCLIENT']._serialized_start=2245
+  _globals['_COMBINERCLIENT']._serialized_end=2922
+  _globals['_MODELSERVICE']._serialized_start=2925
+  _globals['_MODELSERVICE']._serialized_end=3056
 # @@protoc_insertion_point(module_scope)

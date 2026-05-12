@@ -5,7 +5,7 @@ import warnings
 
 from scaleoututil.grpc import scaleout_pb2 as scaleoututil_dot_grpc_dot_scaleout__pb2
 
-GRPC_GENERATED_VERSION = '1.76.0'
+GRPC_GENERATED_VERSION = '1.78.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -44,11 +44,6 @@ class CombinerClientStub(object):
                 request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ModelValidation.SerializeToString,
                 response_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.FromString,
                 _registered_method=True)
-        self.SendModelPrediction = channel.unary_unary(
-                '/scaleout.CombinerClient/SendModelPrediction',
-                request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ModelPrediction.SerializeToString,
-                response_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.FromString,
-                _registered_method=True)
         self.SendModelMetric = channel.unary_unary(
                 '/scaleout.CombinerClient/SendModelMetric',
                 request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ModelMetric.SerializeToString,
@@ -69,10 +64,10 @@ class CombinerClientStub(object):
                 request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ClientAnnounceRequest.SerializeToString,
                 response_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.FromString,
                 _registered_method=True)
-        self.PollAndReport = channel.unary_unary(
-                '/scaleout.CombinerClient/PollAndReport',
-                request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ActivityReport.SerializeToString,
-                response_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.TaskRequest.FromString,
+        self.PollAndReportAsync = channel.unary_unary(
+                '/scaleout.CombinerClient/PollAndReportAsync',
+                request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ClientReport.SerializeToString,
+                response_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.CombinerDirective.FromString,
                 _registered_method=True)
         self.SendStatus = channel.unary_unary(
                 '/scaleout.CombinerClient/SendStatus',
@@ -106,12 +101,6 @@ class CombinerClientServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def SendModelPrediction(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def SendModelMetric(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -136,7 +125,7 @@ class CombinerClientServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def PollAndReport(self, request, context):
+    def PollAndReportAsync(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -176,11 +165,6 @@ def add_CombinerClientServicer_to_server(servicer, server):
                     request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ModelValidation.FromString,
                     response_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.SerializeToString,
             ),
-            'SendModelPrediction': grpc.unary_unary_rpc_method_handler(
-                    servicer.SendModelPrediction,
-                    request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ModelPrediction.FromString,
-                    response_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.SerializeToString,
-            ),
             'SendModelMetric': grpc.unary_unary_rpc_method_handler(
                     servicer.SendModelMetric,
                     request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ModelMetric.FromString,
@@ -201,10 +185,10 @@ def add_CombinerClientServicer_to_server(servicer, server):
                     request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ClientAnnounceRequest.FromString,
                     response_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.SerializeToString,
             ),
-            'PollAndReport': grpc.unary_unary_rpc_method_handler(
-                    servicer.PollAndReport,
-                    request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ActivityReport.FromString,
-                    response_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.TaskRequest.SerializeToString,
+            'PollAndReportAsync': grpc.unary_unary_rpc_method_handler(
+                    servicer.PollAndReportAsync,
+                    request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ClientReport.FromString,
+                    response_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.CombinerDirective.SerializeToString,
             ),
             'SendStatus': grpc.unary_unary_rpc_method_handler(
                     servicer.SendStatus,
@@ -275,33 +259,6 @@ class CombinerClient(object):
             target,
             '/scaleout.CombinerClient/SendModelValidation',
             scaleoututil_dot_grpc_dot_scaleout__pb2.ModelValidation.SerializeToString,
-            scaleoututil_dot_grpc_dot_scaleout__pb2.Response.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def SendModelPrediction(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/scaleout.CombinerClient/SendModelPrediction',
-            scaleoututil_dot_grpc_dot_scaleout__pb2.ModelPrediction.SerializeToString,
             scaleoututil_dot_grpc_dot_scaleout__pb2.Response.FromString,
             options,
             channel_credentials,
@@ -422,7 +379,7 @@ class CombinerClient(object):
             _registered_method=True)
 
     @staticmethod
-    def PollAndReport(request,
+    def PollAndReportAsync(request,
             target,
             options=(),
             channel_credentials=None,
@@ -435,9 +392,9 @@ class CombinerClient(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/scaleout.CombinerClient/PollAndReport',
-            scaleoututil_dot_grpc_dot_scaleout__pb2.ActivityReport.SerializeToString,
-            scaleoututil_dot_grpc_dot_scaleout__pb2.TaskRequest.FromString,
+            '/scaleout.CombinerClient/PollAndReportAsync',
+            scaleoututil_dot_grpc_dot_scaleout__pb2.ClientReport.SerializeToString,
+            scaleoututil_dot_grpc_dot_scaleout__pb2.CombinerDirective.FromString,
             options,
             channel_credentials,
             insecure,

@@ -3,30 +3,30 @@
 isort:skip_file
 """
 
-import builtins
-import collections.abc
-import google.protobuf.descriptor
-import google.protobuf.internal.containers
-import google.protobuf.internal.enum_type_wrapper
-import google.protobuf.message
-import google.protobuf.timestamp_pb2
-import google.protobuf.wrappers_pb2
+from collections import abc as _abc
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import message as _message
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
+from google.protobuf import wrappers_pb2 as _wrappers_pb2
+from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
+import builtins as _builtins
 import sys
-import typing
+import typing as _typing
 
 if sys.version_info >= (3, 10):
-    import typing as typing_extensions
+    from typing import TypeAlias as _TypeAlias
 else:
-    import typing_extensions
+    from typing_extensions import TypeAlias as _TypeAlias
 
-DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
+DESCRIPTOR: _descriptor.FileDescriptor
 
 class _LogLevel:
-    ValueType = typing.NewType("ValueType", builtins.int)
-    V: typing_extensions.TypeAlias = ValueType
+    ValueType = _typing.NewType("ValueType", _builtins.int)
+    V: _TypeAlias = ValueType  # noqa: Y015
 
-class _LogLevelEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_LogLevel.ValueType], builtins.type):
-    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+class _LogLevelEnumTypeWrapper(_enum_type_wrapper._EnumTypeWrapper[_LogLevel.ValueType], _builtins.type):
+    DESCRIPTOR: _descriptor.EnumDescriptor
     NONE: _LogLevel.ValueType  # 0
     INFO: _LogLevel.ValueType  # 1
     DEBUG: _LogLevel.ValueType  # 2
@@ -43,14 +43,14 @@ DEBUG: LogLevel.ValueType  # 2
 WARNING: LogLevel.ValueType  # 3
 ERROR: LogLevel.ValueType  # 4
 AUDIT: LogLevel.ValueType  # 5
-Global___LogLevel: typing_extensions.TypeAlias = LogLevel
+Global___LogLevel: _TypeAlias = LogLevel  # noqa: Y015
 
 class _ModelStatus:
-    ValueType = typing.NewType("ValueType", builtins.int)
-    V: typing_extensions.TypeAlias = ValueType
+    ValueType = _typing.NewType("ValueType", _builtins.int)
+    V: _TypeAlias = ValueType  # noqa: Y015
 
-class _ModelStatusEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ModelStatus.ValueType], builtins.type):
-    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+class _ModelStatusEnumTypeWrapper(_enum_type_wrapper._EnumTypeWrapper[_ModelStatus.ValueType], _builtins.type):
+    DESCRIPTOR: _descriptor.EnumDescriptor
     UNKNOWN: _ModelStatus.ValueType  # 0
     IN_PROGRESS: _ModelStatus.ValueType  # 1
     OK: _ModelStatus.ValueType  # 2
@@ -63,478 +63,507 @@ UNKNOWN: ModelStatus.ValueType  # 0
 IN_PROGRESS: ModelStatus.ValueType  # 1
 OK: ModelStatus.ValueType  # 2
 FAILED: ModelStatus.ValueType  # 3
-Global___ModelStatus: typing_extensions.TypeAlias = ModelStatus
+Global___ModelStatus: _TypeAlias = ModelStatus  # noqa: Y015
 
-@typing.final
-class Response(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class Response(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    RESPONSE_FIELD_NUMBER: builtins.int
-    PARAMETERS_FIELD_NUMBER: builtins.int
-    response: builtins.str
-    parameters: builtins.str
+    RESPONSE_FIELD_NUMBER: _builtins.int
+    PARAMETERS_FIELD_NUMBER: _builtins.int
+    response: _builtins.str
+    parameters: _builtins.str
     def __init__(
         self,
         *,
-        response: builtins.str = ...,
-        parameters: builtins.str = ...,
+        response: _builtins.str = ...,
+        parameters: _builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["parameters", b"parameters", "response", b"response"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["parameters", b"parameters", "response", b"response"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___Response: typing_extensions.TypeAlias = Response
+Global___Response: _TypeAlias = Response  # noqa: Y015
 
-@typing.final
-class Status(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class Status(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    CLIENT_ID_FIELD_NUMBER: builtins.int
-    STATUS_FIELD_NUMBER: builtins.int
-    LOG_LEVEL_FIELD_NUMBER: builtins.int
-    TIMESTAMP_FIELD_NUMBER: builtins.int
-    TYPE_FIELD_NUMBER: builtins.int
-    client_id: builtins.str
-    status: builtins.str
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    STATUS_FIELD_NUMBER: _builtins.int
+    LOG_LEVEL_FIELD_NUMBER: _builtins.int
+    TIMESTAMP_FIELD_NUMBER: _builtins.int
+    TYPE_FIELD_NUMBER: _builtins.int
+    client_id: _builtins.str
+    status: _builtins.str
     log_level: Global___LogLevel.ValueType
-    type: builtins.str
-    @property
-    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    type: _builtins.str
+    @_builtins.property
+    def timestamp(self) -> _timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
-        client_id: builtins.str = ...,
-        status: builtins.str = ...,
+        client_id: _builtins.str = ...,
+        status: _builtins.str = ...,
         log_level: Global___LogLevel.ValueType = ...,
-        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
-        type: builtins.str = ...,
+        timestamp: _timestamp_pb2.Timestamp | None = ...,
+        type: _builtins.str = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["timestamp", b"timestamp"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["client_id", b"client_id", "log_level", b"log_level", "status", b"status", "timestamp", b"timestamp", "type", b"type"]) -> None: ...
+    _HasFieldArgType: _TypeAlias = _typing.Literal["timestamp", b"timestamp"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "log_level", b"log_level", "status", b"status", "timestamp", b"timestamp", "type", b"type"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___Status: typing_extensions.TypeAlias = Status
+Global___Status: _TypeAlias = Status  # noqa: Y015
 
-@typing.final
-class ModelUpdate(google.protobuf.message.Message):
+@_typing.final
+class ModelUpdate(_message.Message):
     """Combiner from Client"""
 
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    DESCRIPTOR: _descriptor.Descriptor
 
-    CLIENT_ID_FIELD_NUMBER: builtins.int
-    MODEL_ID_FIELD_NUMBER: builtins.int
-    MODEL_UPDATE_ID_FIELD_NUMBER: builtins.int
-    CORRELATION_ID_FIELD_NUMBER: builtins.int
-    TIMESTAMP_FIELD_NUMBER: builtins.int
-    META_FIELD_NUMBER: builtins.int
-    CONFIG_FIELD_NUMBER: builtins.int
-    ROUND_ID_FIELD_NUMBER: builtins.int
-    SESSION_ID_FIELD_NUMBER: builtins.int
-    client_id: builtins.str
-    model_id: builtins.str
-    model_update_id: builtins.str
-    correlation_id: builtins.str
-    meta: builtins.str
-    config: builtins.str
-    round_id: builtins.str
-    session_id: builtins.str
-    @property
-    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    MODEL_ID_FIELD_NUMBER: _builtins.int
+    MODEL_UPDATE_ID_FIELD_NUMBER: _builtins.int
+    CORRELATION_ID_FIELD_NUMBER: _builtins.int
+    TIMESTAMP_FIELD_NUMBER: _builtins.int
+    META_FIELD_NUMBER: _builtins.int
+    CONFIG_FIELD_NUMBER: _builtins.int
+    ROUND_ID_FIELD_NUMBER: _builtins.int
+    SESSION_ID_FIELD_NUMBER: _builtins.int
+    client_id: _builtins.str
+    model_id: _builtins.str
+    model_update_id: _builtins.str
+    correlation_id: _builtins.str
+    meta: _builtins.str
+    config: _builtins.str
+    round_id: _builtins.str
+    session_id: _builtins.str
+    @_builtins.property
+    def timestamp(self) -> _timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
-        client_id: builtins.str = ...,
-        model_id: builtins.str = ...,
-        model_update_id: builtins.str = ...,
-        correlation_id: builtins.str = ...,
-        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
-        meta: builtins.str = ...,
-        config: builtins.str = ...,
-        round_id: builtins.str = ...,
-        session_id: builtins.str = ...,
+        client_id: _builtins.str = ...,
+        model_id: _builtins.str = ...,
+        model_update_id: _builtins.str = ...,
+        correlation_id: _builtins.str = ...,
+        timestamp: _timestamp_pb2.Timestamp | None = ...,
+        meta: _builtins.str = ...,
+        config: _builtins.str = ...,
+        round_id: _builtins.str = ...,
+        session_id: _builtins.str = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["timestamp", b"timestamp"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["client_id", b"client_id", "config", b"config", "correlation_id", b"correlation_id", "meta", b"meta", "model_id", b"model_id", "model_update_id", b"model_update_id", "round_id", b"round_id", "session_id", b"session_id", "timestamp", b"timestamp"]) -> None: ...
+    _HasFieldArgType: _TypeAlias = _typing.Literal["timestamp", b"timestamp"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "config", b"config", "correlation_id", b"correlation_id", "meta", b"meta", "model_id", b"model_id", "model_update_id", b"model_update_id", "round_id", b"round_id", "session_id", b"session_id", "timestamp", b"timestamp"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___ModelUpdate: typing_extensions.TypeAlias = ModelUpdate
+Global___ModelUpdate: _TypeAlias = ModelUpdate  # noqa: Y015
 
-@typing.final
-class ModelValidation(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ModelValidation(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    CLIENT_ID_FIELD_NUMBER: builtins.int
-    MODEL_ID_FIELD_NUMBER: builtins.int
-    DATA_FIELD_NUMBER: builtins.int
-    CORRELATION_ID_FIELD_NUMBER: builtins.int
-    TIMESTAMP_FIELD_NUMBER: builtins.int
-    SESSION_ID_FIELD_NUMBER: builtins.int
-    client_id: builtins.str
-    model_id: builtins.str
-    data: builtins.str
-    correlation_id: builtins.str
-    session_id: builtins.str
-    @property
-    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    MODEL_ID_FIELD_NUMBER: _builtins.int
+    DATA_FIELD_NUMBER: _builtins.int
+    CORRELATION_ID_FIELD_NUMBER: _builtins.int
+    TIMESTAMP_FIELD_NUMBER: _builtins.int
+    SESSION_ID_FIELD_NUMBER: _builtins.int
+    client_id: _builtins.str
+    model_id: _builtins.str
+    data: _builtins.str
+    correlation_id: _builtins.str
+    session_id: _builtins.str
+    @_builtins.property
+    def timestamp(self) -> _timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
-        client_id: builtins.str = ...,
-        model_id: builtins.str = ...,
-        data: builtins.str = ...,
-        correlation_id: builtins.str = ...,
-        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
-        session_id: builtins.str = ...,
+        client_id: _builtins.str = ...,
+        model_id: _builtins.str = ...,
+        data: _builtins.str = ...,
+        correlation_id: _builtins.str = ...,
+        timestamp: _timestamp_pb2.Timestamp | None = ...,
+        session_id: _builtins.str = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["timestamp", b"timestamp"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["client_id", b"client_id", "correlation_id", b"correlation_id", "data", b"data", "model_id", b"model_id", "session_id", b"session_id", "timestamp", b"timestamp"]) -> None: ...
+    _HasFieldArgType: _TypeAlias = _typing.Literal["timestamp", b"timestamp"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "correlation_id", b"correlation_id", "data", b"data", "model_id", b"model_id", "session_id", b"session_id", "timestamp", b"timestamp"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___ModelValidation: typing_extensions.TypeAlias = ModelValidation
+Global___ModelValidation: _TypeAlias = ModelValidation  # noqa: Y015
 
-@typing.final
-class ModelPrediction(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ModelMetric(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    CLIENT_ID_FIELD_NUMBER: builtins.int
-    MODEL_ID_FIELD_NUMBER: builtins.int
-    DATA_FIELD_NUMBER: builtins.int
-    CORRELATION_ID_FIELD_NUMBER: builtins.int
-    TIMESTAMP_FIELD_NUMBER: builtins.int
-    SESSION_ID_FIELD_NUMBER: builtins.int
-    client_id: builtins.str
-    model_id: builtins.str
-    data: builtins.str
-    correlation_id: builtins.str
-    session_id: builtins.str
-    @property
-    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    METRICS_FIELD_NUMBER: _builtins.int
+    TIMESTAMP_FIELD_NUMBER: _builtins.int
+    STEP_FIELD_NUMBER: _builtins.int
+    MODEL_ID_FIELD_NUMBER: _builtins.int
+    ROUND_ID_FIELD_NUMBER: _builtins.int
+    SESSION_ID_FIELD_NUMBER: _builtins.int
+    client_id: _builtins.str
+    model_id: _builtins.str
+    round_id: _builtins.str
+    session_id: _builtins.str
+    @_builtins.property
+    def metrics(self) -> _containers.RepeatedCompositeFieldContainer[Global___MetricElem]: ...
+    @_builtins.property
+    def timestamp(self) -> _timestamp_pb2.Timestamp: ...
+    @_builtins.property
+    def step(self) -> _wrappers_pb2.UInt32Value: ...
     def __init__(
         self,
         *,
-        client_id: builtins.str = ...,
-        model_id: builtins.str = ...,
-        data: builtins.str = ...,
-        correlation_id: builtins.str = ...,
-        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
-        session_id: builtins.str = ...,
+        client_id: _builtins.str = ...,
+        metrics: _abc.Iterable[Global___MetricElem] | None = ...,
+        timestamp: _timestamp_pb2.Timestamp | None = ...,
+        step: _wrappers_pb2.UInt32Value | None = ...,
+        model_id: _builtins.str = ...,
+        round_id: _builtins.str = ...,
+        session_id: _builtins.str = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["timestamp", b"timestamp"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["client_id", b"client_id", "correlation_id", b"correlation_id", "data", b"data", "model_id", b"model_id", "session_id", b"session_id", "timestamp", b"timestamp"]) -> None: ...
+    _HasFieldArgType: _TypeAlias = _typing.Literal["step", b"step", "timestamp", b"timestamp"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "metrics", b"metrics", "model_id", b"model_id", "round_id", b"round_id", "session_id", b"session_id", "step", b"step", "timestamp", b"timestamp"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___ModelPrediction: typing_extensions.TypeAlias = ModelPrediction
+Global___ModelMetric: _TypeAlias = ModelMetric  # noqa: Y015
 
-@typing.final
-class ModelMetric(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class MetricElem(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    CLIENT_ID_FIELD_NUMBER: builtins.int
-    METRICS_FIELD_NUMBER: builtins.int
-    TIMESTAMP_FIELD_NUMBER: builtins.int
-    STEP_FIELD_NUMBER: builtins.int
-    MODEL_ID_FIELD_NUMBER: builtins.int
-    ROUND_ID_FIELD_NUMBER: builtins.int
-    SESSION_ID_FIELD_NUMBER: builtins.int
-    client_id: builtins.str
-    model_id: builtins.str
-    round_id: builtins.str
-    session_id: builtins.str
-    @property
-    def metrics(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___MetricElem]: ...
-    @property
-    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
-    @property
-    def step(self) -> google.protobuf.wrappers_pb2.UInt32Value: ...
+    KEY_FIELD_NUMBER: _builtins.int
+    VALUE_FIELD_NUMBER: _builtins.int
+    key: _builtins.str
+    value: _builtins.float
     def __init__(
         self,
         *,
-        client_id: builtins.str = ...,
-        metrics: collections.abc.Iterable[Global___MetricElem] | None = ...,
-        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
-        step: google.protobuf.wrappers_pb2.UInt32Value | None = ...,
-        model_id: builtins.str = ...,
-        round_id: builtins.str = ...,
-        session_id: builtins.str = ...,
+        key: _builtins.str = ...,
+        value: _builtins.float = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["step", b"step", "timestamp", b"timestamp"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["client_id", b"client_id", "metrics", b"metrics", "model_id", b"model_id", "round_id", b"round_id", "session_id", b"session_id", "step", b"step", "timestamp", b"timestamp"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___ModelMetric: typing_extensions.TypeAlias = ModelMetric
+Global___MetricElem: _TypeAlias = MetricElem  # noqa: Y015
 
-@typing.final
-class MetricElem(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class AttributeMessage(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    KEY_FIELD_NUMBER: builtins.int
-    VALUE_FIELD_NUMBER: builtins.int
-    key: builtins.str
-    value: builtins.float
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    ATTRIBUTES_FIELD_NUMBER: _builtins.int
+    TIMESTAMP_FIELD_NUMBER: _builtins.int
+    client_id: _builtins.str
+    @_builtins.property
+    def attributes(self) -> _containers.RepeatedCompositeFieldContainer[Global___AttributeElem]: ...
+    @_builtins.property
+    def timestamp(self) -> _timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
-        key: builtins.str = ...,
-        value: builtins.float = ...,
+        client_id: _builtins.str = ...,
+        attributes: _abc.Iterable[Global___AttributeElem] | None = ...,
+        timestamp: _timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
+    _HasFieldArgType: _TypeAlias = _typing.Literal["timestamp", b"timestamp"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["attributes", b"attributes", "client_id", b"client_id", "timestamp", b"timestamp"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___MetricElem: typing_extensions.TypeAlias = MetricElem
+Global___AttributeMessage: _TypeAlias = AttributeMessage  # noqa: Y015
 
-@typing.final
-class AttributeMessage(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class AttributeElem(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    CLIENT_ID_FIELD_NUMBER: builtins.int
-    ATTRIBUTES_FIELD_NUMBER: builtins.int
-    TIMESTAMP_FIELD_NUMBER: builtins.int
-    client_id: builtins.str
-    @property
-    def attributes(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___AttributeElem]: ...
-    @property
-    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    KEY_FIELD_NUMBER: _builtins.int
+    VALUE_FIELD_NUMBER: _builtins.int
+    key: _builtins.str
+    value: _builtins.str
     def __init__(
         self,
         *,
-        client_id: builtins.str = ...,
-        attributes: collections.abc.Iterable[Global___AttributeElem] | None = ...,
-        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        key: _builtins.str = ...,
+        value: _builtins.str = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["timestamp", b"timestamp"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["attributes", b"attributes", "client_id", b"client_id", "timestamp", b"timestamp"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___AttributeMessage: typing_extensions.TypeAlias = AttributeMessage
+Global___AttributeElem: _TypeAlias = AttributeElem  # noqa: Y015
 
-@typing.final
-class AttributeElem(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class TelemetryMessage(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    KEY_FIELD_NUMBER: builtins.int
-    VALUE_FIELD_NUMBER: builtins.int
-    key: builtins.str
-    value: builtins.str
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    TELEMETRIES_FIELD_NUMBER: _builtins.int
+    TIMESTAMP_FIELD_NUMBER: _builtins.int
+    client_id: _builtins.str
+    @_builtins.property
+    def telemetries(self) -> _containers.RepeatedCompositeFieldContainer[Global___TelemetryElem]: ...
+    @_builtins.property
+    def timestamp(self) -> _timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
-        key: builtins.str = ...,
-        value: builtins.str = ...,
+        client_id: _builtins.str = ...,
+        telemetries: _abc.Iterable[Global___TelemetryElem] | None = ...,
+        timestamp: _timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
+    _HasFieldArgType: _TypeAlias = _typing.Literal["timestamp", b"timestamp"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "telemetries", b"telemetries", "timestamp", b"timestamp"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___AttributeElem: typing_extensions.TypeAlias = AttributeElem
+Global___TelemetryMessage: _TypeAlias = TelemetryMessage  # noqa: Y015
 
-@typing.final
-class TelemetryMessage(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class TelemetryElem(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    CLIENT_ID_FIELD_NUMBER: builtins.int
-    TELEMETRIES_FIELD_NUMBER: builtins.int
-    TIMESTAMP_FIELD_NUMBER: builtins.int
-    client_id: builtins.str
-    @property
-    def telemetries(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___TelemetryElem]: ...
-    @property
-    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    KEY_FIELD_NUMBER: _builtins.int
+    VALUE_FIELD_NUMBER: _builtins.int
+    key: _builtins.str
+    value: _builtins.float
     def __init__(
         self,
         *,
-        client_id: builtins.str = ...,
-        telemetries: collections.abc.Iterable[Global___TelemetryElem] | None = ...,
-        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        key: _builtins.str = ...,
+        value: _builtins.float = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["timestamp", b"timestamp"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["client_id", b"client_id", "telemetries", b"telemetries", "timestamp", b"timestamp"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___TelemetryMessage: typing_extensions.TypeAlias = TelemetryMessage
+Global___TelemetryElem: _TypeAlias = TelemetryElem  # noqa: Y015
 
-@typing.final
-class TelemetryElem(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    KEY_FIELD_NUMBER: builtins.int
-    VALUE_FIELD_NUMBER: builtins.int
-    key: builtins.str
-    value: builtins.float
-    def __init__(
-        self,
-        *,
-        key: builtins.str = ...,
-        value: builtins.float = ...,
-    ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
-
-Global___TelemetryElem: typing_extensions.TypeAlias = TelemetryElem
-
-@typing.final
-class TaskRequest(google.protobuf.message.Message):
+@_typing.final
+class TaskRequest(_message.Message):
     """Task related"""
 
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    DESCRIPTOR: _descriptor.Descriptor
 
-    MODEL_ID_FIELD_NUMBER: builtins.int
-    DATA_FIELD_NUMBER: builtins.int
-    CORRELATION_ID_FIELD_NUMBER: builtins.int
-    TIMESTAMP_FIELD_NUMBER: builtins.int
-    SESSION_ID_FIELD_NUMBER: builtins.int
-    ROUND_ID_FIELD_NUMBER: builtins.int
-    TYPE_FIELD_NUMBER: builtins.int
-    STATUS_FIELD_NUMBER: builtins.int
-    CLIENT_ID_FIELD_NUMBER: builtins.int
-    model_id: builtins.str
-    data: builtins.str
-    correlation_id: builtins.str
-    timestamp: builtins.str
-    session_id: builtins.str
-    round_id: builtins.str
-    type: builtins.str
-    status: builtins.str
-    client_id: builtins.str
+    MODEL_ID_FIELD_NUMBER: _builtins.int
+    DATA_FIELD_NUMBER: _builtins.int
+    CORRELATION_ID_FIELD_NUMBER: _builtins.int
+    TIMESTAMP_FIELD_NUMBER: _builtins.int
+    SESSION_ID_FIELD_NUMBER: _builtins.int
+    ROUND_ID_FIELD_NUMBER: _builtins.int
+    TYPE_FIELD_NUMBER: _builtins.int
+    STATUS_FIELD_NUMBER: _builtins.int
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    model_id: _builtins.str
+    data: _builtins.str
+    correlation_id: _builtins.str
+    timestamp: _builtins.str
+    session_id: _builtins.str
+    round_id: _builtins.str
+    type: _builtins.str
+    status: _builtins.str
+    client_id: _builtins.str
     def __init__(
         self,
         *,
-        model_id: builtins.str = ...,
-        data: builtins.str = ...,
-        correlation_id: builtins.str = ...,
-        timestamp: builtins.str = ...,
-        session_id: builtins.str = ...,
-        round_id: builtins.str = ...,
-        type: builtins.str = ...,
-        status: builtins.str = ...,
-        client_id: builtins.str = ...,
+        model_id: _builtins.str = ...,
+        data: _builtins.str = ...,
+        correlation_id: _builtins.str = ...,
+        timestamp: _builtins.str = ...,
+        session_id: _builtins.str = ...,
+        round_id: _builtins.str = ...,
+        type: _builtins.str = ...,
+        status: _builtins.str = ...,
+        client_id: _builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["client_id", b"client_id", "correlation_id", b"correlation_id", "data", b"data", "model_id", b"model_id", "round_id", b"round_id", "session_id", b"session_id", "status", b"status", "timestamp", b"timestamp", "type", b"type"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "correlation_id", b"correlation_id", "data", b"data", "model_id", b"model_id", "round_id", b"round_id", "session_id", b"session_id", "status", b"status", "timestamp", b"timestamp", "type", b"type"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___TaskRequest: typing_extensions.TypeAlias = TaskRequest
+Global___TaskRequest: _TypeAlias = TaskRequest  # noqa: Y015
 
-@typing.final
-class ActivityReport(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ActivityReport(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    NODE_ID_FIELD_NUMBER: builtins.int
-    CORRELATION_ID_FIELD_NUMBER: builtins.int
-    STATUS_FIELD_NUMBER: builtins.int
-    DONE_FIELD_NUMBER: builtins.int
-    RESPONSE_FIELD_NUMBER: builtins.int
-    node_id: builtins.str
+    NODE_ID_FIELD_NUMBER: _builtins.int
+    CORRELATION_ID_FIELD_NUMBER: _builtins.int
+    STATUS_FIELD_NUMBER: _builtins.int
+    DONE_FIELD_NUMBER: _builtins.int
+    RESPONSE_FIELD_NUMBER: _builtins.int
+    node_id: _builtins.str
     """If sent from a client"""
-    correlation_id: builtins.str
-    status: builtins.str
-    done: builtins.bool
-    response: builtins.str
+    correlation_id: _builtins.str
+    status: _builtins.str
+    done: _builtins.bool
+    response: _builtins.str
     """json"""
     def __init__(
         self,
         *,
-        node_id: builtins.str = ...,
-        correlation_id: builtins.str = ...,
-        status: builtins.str = ...,
-        done: builtins.bool = ...,
-        response: builtins.str = ...,
+        node_id: _builtins.str = ...,
+        correlation_id: _builtins.str = ...,
+        status: _builtins.str = ...,
+        done: _builtins.bool = ...,
+        response: _builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["correlation_id", b"correlation_id", "done", b"done", "node_id", b"node_id", "response", b"response", "status", b"status"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["correlation_id", b"correlation_id", "done", b"done", "node_id", b"node_id", "response", b"response", "status", b"status"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___ActivityReport: typing_extensions.TypeAlias = ActivityReport
+Global___ActivityReport: _TypeAlias = ActivityReport  # noqa: Y015
 
-@typing.final
-class Heartbeat(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class Heartbeat(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    CLIENT_ID_FIELD_NUMBER: builtins.int
-    MEMORY_UTILISATION_FIELD_NUMBER: builtins.int
-    CPU_UTILISATION_FIELD_NUMBER: builtins.int
-    client_id: builtins.str
-    memory_utilisation: builtins.float
-    cpu_utilisation: builtins.float
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    MEMORY_UTILISATION_FIELD_NUMBER: _builtins.int
+    CPU_UTILISATION_FIELD_NUMBER: _builtins.int
+    client_id: _builtins.str
+    memory_utilisation: _builtins.float
+    cpu_utilisation: _builtins.float
     def __init__(
         self,
         *,
-        client_id: builtins.str = ...,
-        memory_utilisation: builtins.float = ...,
-        cpu_utilisation: builtins.float = ...,
+        client_id: _builtins.str = ...,
+        memory_utilisation: _builtins.float = ...,
+        cpu_utilisation: _builtins.float = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["client_id", b"client_id", "cpu_utilisation", b"cpu_utilisation", "memory_utilisation", b"memory_utilisation"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "cpu_utilisation", b"cpu_utilisation", "memory_utilisation", b"memory_utilisation"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___Heartbeat: typing_extensions.TypeAlias = Heartbeat
+Global___Heartbeat: _TypeAlias = Heartbeat  # noqa: Y015
 
-@typing.final
-class ClientAvailableMessage(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ClientAvailableMessage(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    CLIENT_ID_FIELD_NUMBER: builtins.int
-    DATA_FIELD_NUMBER: builtins.int
-    TIMESTAMP_FIELD_NUMBER: builtins.int
-    client_id: builtins.str
-    data: builtins.str
-    timestamp: builtins.str
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    DATA_FIELD_NUMBER: _builtins.int
+    TIMESTAMP_FIELD_NUMBER: _builtins.int
+    client_id: _builtins.str
+    data: _builtins.str
+    timestamp: _builtins.str
     def __init__(
         self,
         *,
-        client_id: builtins.str = ...,
-        data: builtins.str = ...,
-        timestamp: builtins.str = ...,
+        client_id: _builtins.str = ...,
+        data: _builtins.str = ...,
+        timestamp: _builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["client_id", b"client_id", "data", b"data", "timestamp", b"timestamp"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "data", b"data", "timestamp", b"timestamp"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___ClientAvailableMessage: typing_extensions.TypeAlias = ClientAvailableMessage
+Global___ClientAvailableMessage: _TypeAlias = ClientAvailableMessage  # noqa: Y015
 
-@typing.final
-class ClientAnnounceRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ClientAnnounceRequest(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    CLIENT_ID_FIELD_NUMBER: builtins.int
-    TYPE_FIELD_NUMBER: builtins.int
-    PARAMETERS_FIELD_NUMBER: builtins.int
-    client_id: builtins.str
-    type: builtins.str
-    parameters: builtins.str
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    TYPE_FIELD_NUMBER: _builtins.int
+    PARAMETERS_FIELD_NUMBER: _builtins.int
+    client_id: _builtins.str
+    type: _builtins.str
+    parameters: _builtins.str
     def __init__(
         self,
         *,
-        client_id: builtins.str = ...,
-        type: builtins.str = ...,
-        parameters: builtins.str = ...,
+        client_id: _builtins.str = ...,
+        type: _builtins.str = ...,
+        parameters: _builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["client_id", b"client_id", "parameters", b"parameters", "type", b"type"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "parameters", b"parameters", "type", b"type"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___ClientAnnounceRequest: typing_extensions.TypeAlias = ClientAnnounceRequest
+Global___ClientAnnounceRequest: _TypeAlias = ClientAnnounceRequest  # noqa: Y015
 
-@typing.final
-class ModelRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ClientReport(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    MODEL_ID_FIELD_NUMBER: builtins.int
-    model_id: builtins.str
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    REPORTS_FIELD_NUMBER: _builtins.int
+    client_id: _builtins.str
+    @_builtins.property
+    def reports(self) -> _containers.RepeatedCompositeFieldContainer[Global___ActivityReport]: ...
     def __init__(
         self,
         *,
-        model_id: builtins.str = ...,
+        client_id: _builtins.str = ...,
+        reports: _abc.Iterable[Global___ActivityReport] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["model_id", b"model_id"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "reports", b"reports"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___ModelRequest: typing_extensions.TypeAlias = ModelRequest
+Global___ClientReport: _TypeAlias = ClientReport  # noqa: Y015
 
-@typing.final
-class FileChunk(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class CombinerDirective(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    DATA_FIELD_NUMBER: builtins.int
-    data: builtins.bytes
+    TASKS_FIELD_NUMBER: _builtins.int
+    @_builtins.property
+    def tasks(self) -> _containers.RepeatedCompositeFieldContainer[Global___TaskRequest]: ...
     def __init__(
         self,
         *,
-        data: builtins.bytes = ...,
+        tasks: _abc.Iterable[Global___TaskRequest] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data", b"data"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["tasks", b"tasks"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___FileChunk: typing_extensions.TypeAlias = FileChunk
+Global___CombinerDirective: _TypeAlias = CombinerDirective  # noqa: Y015
 
-@typing.final
-class ModelResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ModelRequest(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    STATUS_FIELD_NUMBER: builtins.int
-    MESSAGE_FIELD_NUMBER: builtins.int
+    MODEL_ID_FIELD_NUMBER: _builtins.int
+    model_id: _builtins.str
+    def __init__(
+        self,
+        *,
+        model_id: _builtins.str = ...,
+    ) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["model_id", b"model_id"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___ModelRequest: _TypeAlias = ModelRequest  # noqa: Y015
+
+@_typing.final
+class FileChunk(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
+
+    DATA_FIELD_NUMBER: _builtins.int
+    data: _builtins.bytes
+    def __init__(
+        self,
+        *,
+        data: _builtins.bytes = ...,
+    ) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["data", b"data"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___FileChunk: _TypeAlias = FileChunk  # noqa: Y015
+
+@_typing.final
+class ModelResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
+
+    STATUS_FIELD_NUMBER: _builtins.int
+    MESSAGE_FIELD_NUMBER: _builtins.int
     status: Global___ModelStatus.ValueType
-    message: builtins.str
+    message: _builtins.str
     def __init__(
         self,
         *,
         status: Global___ModelStatus.ValueType = ...,
-        message: builtins.str = ...,
+        message: _builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["message", b"message", "status", b"status"]) -> None: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["message", b"message", "status", b"status"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
-Global___ModelResponse: typing_extensions.TypeAlias = ModelResponse
+Global___ModelResponse: _TypeAlias = ModelResponse  # noqa: Y015
