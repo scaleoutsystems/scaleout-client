@@ -14,7 +14,7 @@ Support
 Community support is available in our `Discord
 server <https://discord.gg/KMg4VwszAd>`__.
 
-Options are available for `Dedicated/custom support <https://www.scaleoutsystems.com/start#pricing>`__.
+Options are available for `Dedicated/custom support <https://www.scaleoutsystems.com/product#pricing>`__.
 
 Citation
 ========
