@@ -1,6 +1,6 @@
 [project]
 name = "scaleoututil"
-version = "1.0.2"
+version = "1.0.3"
 description = "A library for shared resources in the Scaleout Edge"
 authors = [{ name = "Scaleout Systems AB" }]
 requires-python = ">=3.11, <3.14"
