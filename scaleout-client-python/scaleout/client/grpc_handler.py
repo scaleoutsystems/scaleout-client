@@ -14,7 +14,7 @@ import grpc
 
 import scaleoututil.grpc.scaleout_pb2 as scaleout_msg
 import scaleoututil.grpc.scaleout_pb2_grpc as rpc
-from scaleoututil.config import SCALEOUT_AUTH_SCHEME
+from scaleoututil.config import SCALEOUT_AUTH_SCHEME, SCALEOUT_GRPC_SECURE
 from scaleoututil.logging import ScaleoutLogger
 from scaleoututil.utils.model import ScaleoutModel
 
@@ -35,8 +35,6 @@ GRPC_OPTIONS = [
     ("grpc.keepalive_timeout_ms", KEEPALIVE_TIMEOUT_MS),
     ("grpc.keepalive_permit_without_calls", KEEPALIVE_PERMIT_WITHOUT_CALLS),
 ]
-
-GRPC_SECURE_PORT = 443
 
 
 def upload_request_generator(model_stream: BytesIO):
@@ -205,9 +203,13 @@ class GrpcHandler:
         self.modelStub = rpc.ModelServiceStub(self.channel)
 
     def _init_channel(self, host: str, port: int) -> None:
-        """Initialize the GRPC channel."""
+        """Initialize the GRPC channel.
+
+        Secure (TLS) by default; controlled by SCALEOUT_GRPC_SECURE rather than the
+        port number. Set SCALEOUT_GRPC_SECURE=false for plaintext combiners.
+        """
         token = self.client.token_manager.get_access_token() if hasattr(self.client, "token_manager") and self.client.token_manager else None
-        if port == GRPC_SECURE_PORT:
+        if SCALEOUT_GRPC_SECURE:
             self._init_secure_channel(host, port, token)
         else:
             self._init_insecure_channel(host, port, token)
@@ -230,20 +232,18 @@ class GrpcHandler:
 
         credentials = grpc.ssl_channel_credentials()
 
-        # Use callable for token if TokenManager is available for dynamic refresh
         if hasattr(self.client, "token_manager") and self.client.token_manager:
-
-            def token_callable():
-                return self.client.token_manager.get_access_token()
-
-            auth_creds = grpc.metadata_call_credentials(GrpcAuth(token_callable))
+            # The token is attached per call via the metadata property, so it must
+            # not also be added to the channel here: doing both sends a duplicate
+            # authorization header, which proxies reject with HTTP 400.
             self.channel = grpc.secure_channel(
                 f"{host}:{port}",
-                grpc.composite_channel_credentials(credentials, auth_creds),
+                credentials,
                 options=GRPC_OPTIONS,
             )
-            ScaleoutLogger().info("Using TokenManager for dynamic token refresh in secure channel")
+            ScaleoutLogger().info("Using TokenManager; token sent via per-call metadata in secure channel")
         elif token:
+            # Unreachable today (token is only sourced from token_manager above).
             auth_creds = grpc.metadata_call_credentials(GrpcAuth(token))
             self.channel = grpc.secure_channel(
                 f"{host}:{port}",
