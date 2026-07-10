@@ -48,10 +48,12 @@ class TestCLIAuthenticationCalls(unittest.TestCase):
     @patch("scaleout.cli.model_cmd.complement_with_context")
     @patch("scaleout.cli.model_cmd.perform_chunked_upload")
     @patch("scaleout.cli.model_cmd.requests.post")
-    def test_set_active_model_calls_complement_with_context(self, mock_post, mock_chunked_upload, mock_complement):
+    @patch("scaleout.cli.model_cmd.requests.put")
+    def test_set_active_model_calls_complement_with_context(self, mock_put, mock_post, mock_chunked_upload, mock_complement):
         """Test that set_active_model calls complement_with_context."""
         mock_complement.return_value = ("http://localhost:8092", "test-token")
         mock_chunked_upload.return_value = "dummy-token"
+        mock_put.return_value = MagicMock(status_code=200)
         mock_post.return_value = MagicMock(status_code=200)
 
         with self.runner.isolated_filesystem():
@@ -98,9 +100,14 @@ class TestCLIAuthenticationCalls(unittest.TestCase):
 
     @patch("scaleout.cli.session_cmd.complement_with_context")
     @patch("scaleout.cli.session_cmd.requests.post")
-    def test_start_session_calls_complement_with_context(self, mock_post, mock_complement):
+    @patch("scaleout.cli.session_cmd.requests.get")
+    def test_start_session_calls_complement_with_context(self, mock_get, mock_post, mock_complement):
         """Test that start_session calls complement_with_context."""
         mock_complement.return_value = ("http://localhost:8092", "test-token")
+        mock_get.side_effect = [
+            MagicMock(status_code=200, json=lambda: {"result": [{"model_id": "test-model-id"}]}),
+            MagicMock(status_code=200, json=lambda: "numpyhelper"),
+        ]
         mock_post.return_value = MagicMock(status_code=200, json=lambda: {"session_id": "test-id"})
 
         result = self.runner.invoke(start_session, [])
