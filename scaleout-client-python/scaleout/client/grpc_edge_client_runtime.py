@@ -343,6 +343,10 @@ class GrpcEdgeClientRuntime:
                 ScaleoutLogger().error("Train callback returned None model. Aborting training request.")
                 raise Exception("Train callback returned None model.")
 
+            num_examples = meta.get("training_metadata", {}).get("num_examples", 0)
+            if not isinstance(num_examples, (int, float)) or num_examples <= 0:
+                raise ValueError(f"Train callback must return num_examples > 0 in training_metadata, got: {num_examples!r}")
+
             meta["processing_time"] = time.time() - tic
 
             tic = time.time()
