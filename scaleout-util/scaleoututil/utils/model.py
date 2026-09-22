@@ -114,6 +114,19 @@ class ScaleoutModel:
     def __del__(self):
         self._cleanup()
 
+    def close(self):
+        """Explicitly release resources held by this model.
+
+        Closes the open file handle and deletes the owned temp ZIP file, if any.
+        Deterministic alternative to relying on ``__del__``/GC — callers that
+        remove a model from storage while other references may still exist
+        (e.g. caches, in-flight lambdas) should call this explicitly rather
+        than dropping the reference and hoping for prompt collection.
+
+        Safe to call multiple times; the model should not be used afterwards.
+        """
+        self._cleanup()
+
     def __repr__(self) -> str:
         mid = self._metadata.get("model_id", "?")
         helper = self._metadata.get("helper_type", "?")

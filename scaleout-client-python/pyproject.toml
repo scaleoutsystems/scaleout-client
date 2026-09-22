@@ -1,6 +1,6 @@
 [project]
 name = "scaleout"
-version = "1.0.5"
+version = "1.0.6"
 description = "A client library for the Scaleout Edge"
 authors = [{ name = "Scaleout Systems AB" }]
 requires-python = ">=3.11, <3.14"
@@ -9,7 +9,7 @@ license = "Apache-2.0"
 dependencies = [
     "numpy>=1.21.6",
     "psutil",
-    "scaleoututil==1.0.5",
+    "scaleoututil==1.0.6",
     "click==8.3.1",
     "urllib3>=2.6.0",
 ]
