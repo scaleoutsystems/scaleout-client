@@ -1,7 +1,7 @@
 import click
 
 from scaleout.cli.main import main
-from scaleout.cli.shared import complement_with_context, get_response, process_response
+from scaleout.cli.shared import build_client, call, render_response
 
 
 @main.group(
@@ -23,9 +23,21 @@ def status_cmd(ctx):
 @click.option("-o", "--output", "output_format", required=False, default="human", help="Output in JSON format")
 @click.option("-s", "--session_id", required=False, help="statuses with given session id")
 @click.option("--n_max", required=False, help="Number of items to list")
+@click.option("--no-verify-tls", is_flag=True, default=False, help="Do not verify the server TLS certificate (connection is still encrypted).")
 @status_cmd.command("list")
 @click.pass_context
-def list_statuses(ctx, protocol: str, host: str, port: str, token: str = None, session_id: str = None, n_max: int = None, output_format: str = "human"):
+def list_statuses(
+    ctx,
+    *,
+    protocol: str,
+    host: str,
+    port: str,
+    token: str = None,
+    session_id: str = None,
+    n_max: int = None,
+    output_format: str = "human",
+    no_verify_tls: bool = False,
+):
     """List statuses.
 
     **Returns**
@@ -33,18 +45,9 @@ def list_statuses(ctx, protocol: str, host: str, port: str, token: str = None, s
     - count: number of statuses
     - result: list of statuses
     """
-    base_url, token = complement_with_context(protocol, host, port, token)
-    headers = {}
-
-    if n_max:
-        headers["X-Limit"] = n_max
-
-    query = {}
-    if session_id:
-        query["session_id"] = session_id
-
-    response = get_response(base_url=base_url, endpoint="statuses/", query=query, token=token, headers=headers)
-    return process_response(response, "statuses", output_format=output_format, base_url=base_url)
+    base_url, client = build_client(protocol, host, port, token, no_verify_tls)
+    result = call(client.get_statuses, session_id=session_id, n_max=n_max)
+    return render_response(result, "statuses", output_format=output_format, base_url=base_url)
 
 
 @click.option("-p", "--protocol", required=False, default=None, help="Communication protocol of controller (api)")
@@ -53,15 +56,16 @@ def list_statuses(ctx, protocol: str, host: str, port: str, token: str = None, s
 @click.option("-t", "--token", required=False, help="Authentication token")
 @click.option("-o", "--output", "output_format", required=False, default="human", help="Output in JSON format")
 @click.option("-id", "--id", required=True, help="Status ID")
+@click.option("--no-verify-tls", is_flag=True, default=False, help="Do not verify the server TLS certificate (connection is still encrypted).")
 @status_cmd.command("get")
 @click.pass_context
-def get_status(ctx, protocol: str, host: str, port: str, token: str = None, id: str = None, output_format: str = "human"):
+def get_status(ctx, *, protocol: str, host: str, port: str, token: str = None, id: str = None, output_format: str = "human", no_verify_tls: bool = False):
     """Get status.
 
     **Returns**
 
     - result: status with given id
     """
-    base_url, token = complement_with_context(protocol, host, port, token)
-    response = get_response(base_url=base_url, endpoint=f"statuses/{id}", query={}, token=token, headers={})
-    return process_response(response, "status", output_format=output_format, base_url=base_url)
+    base_url, client = build_client(protocol, host, port, token, no_verify_tls)
+    result = call(client.get_status, id)
+    return render_response(result, "status", output_format=output_format, base_url=base_url)

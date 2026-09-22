@@ -14,10 +14,10 @@ import builtins as _builtins
 import sys
 import typing as _typing
 
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias as _TypeAlias
+if sys.version_info >= (3, 11):
+    from typing import TypeAlias as _TypeAlias, Never as _Never
 else:
-    from typing_extensions import TypeAlias as _TypeAlias
+    from typing_extensions import TypeAlias as _TypeAlias, Never as _Never
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -79,8 +79,11 @@ class Response(_message.Message):
         response: _builtins.str = ...,
         parameters: _builtins.str = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["parameters", b"parameters", "response", b"response"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___Response: _TypeAlias = Response  # noqa: Y015
 
@@ -112,6 +115,7 @@ class Status(_message.Message):
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "log_level", b"log_level", "status", b"status", "timestamp", b"timestamp", "type", b"type"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___Status: _TypeAlias = Status  # noqa: Y015
 
@@ -157,6 +161,7 @@ class ModelUpdate(_message.Message):
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "config", b"config", "correlation_id", b"correlation_id", "meta", b"meta", "model_id", b"model_id", "model_update_id", b"model_update_id", "round_id", b"round_id", "session_id", b"session_id", "timestamp", b"timestamp"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___ModelUpdate: _TypeAlias = ModelUpdate  # noqa: Y015
 
@@ -191,6 +196,7 @@ class ModelValidation(_message.Message):
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "correlation_id", b"correlation_id", "data", b"data", "model_id", b"model_id", "session_id", b"session_id", "timestamp", b"timestamp"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___ModelValidation: _TypeAlias = ModelValidation  # noqa: Y015
 
@@ -230,6 +236,7 @@ class ModelMetric(_message.Message):
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "metrics", b"metrics", "model_id", b"model_id", "round_id", b"round_id", "session_id", b"session_id", "step", b"step", "timestamp", b"timestamp"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___ModelMetric: _TypeAlias = ModelMetric  # noqa: Y015
 
@@ -247,8 +254,11 @@ class MetricElem(_message.Message):
         key: _builtins.str = ...,
         value: _builtins.float = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___MetricElem: _TypeAlias = MetricElem  # noqa: Y015
 
@@ -275,6 +285,7 @@ class AttributeMessage(_message.Message):
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["attributes", b"attributes", "client_id", b"client_id", "timestamp", b"timestamp"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___AttributeMessage: _TypeAlias = AttributeMessage  # noqa: Y015
 
@@ -292,8 +303,11 @@ class AttributeElem(_message.Message):
         key: _builtins.str = ...,
         value: _builtins.str = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___AttributeElem: _TypeAlias = AttributeElem  # noqa: Y015
 
@@ -304,7 +318,9 @@ class TelemetryMessage(_message.Message):
     CLIENT_ID_FIELD_NUMBER: _builtins.int
     TELEMETRIES_FIELD_NUMBER: _builtins.int
     TIMESTAMP_FIELD_NUMBER: _builtins.int
+    RECORD_ID_FIELD_NUMBER: _builtins.int
     client_id: _builtins.str
+    record_id: _builtins.str
     @_builtins.property
     def telemetries(self) -> _containers.RepeatedCompositeFieldContainer[Global___TelemetryElem]: ...
     @_builtins.property
@@ -315,11 +331,13 @@ class TelemetryMessage(_message.Message):
         client_id: _builtins.str = ...,
         telemetries: _abc.Iterable[Global___TelemetryElem] | None = ...,
         timestamp: _timestamp_pb2.Timestamp | None = ...,
+        record_id: _builtins.str = ...,
     ) -> None: ...
     _HasFieldArgType: _TypeAlias = _typing.Literal["timestamp", b"timestamp"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "telemetries", b"telemetries", "timestamp", b"timestamp"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "record_id", b"record_id", "telemetries", b"telemetries", "timestamp", b"timestamp"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___TelemetryMessage: _TypeAlias = TelemetryMessage  # noqa: Y015
 
@@ -337,10 +355,135 @@ class TelemetryElem(_message.Message):
         key: _builtins.str = ...,
         value: _builtins.float = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___TelemetryElem: _TypeAlias = TelemetryElem  # noqa: Y015
+
+@_typing.final
+class TelemetryRecord(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
+
+    TELEMETRY_ID_FIELD_NUMBER: _builtins.int
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    TIMESTAMP_FIELD_NUMBER: _builtins.int
+    KEY_FIELD_NUMBER: _builtins.int
+    PAYLOAD_FIELD_NUMBER: _builtins.int
+    telemetry_id: _builtins.str
+    client_id: _builtins.str
+    key: _builtins.str
+    payload: _builtins.str
+    @_builtins.property
+    def timestamp(self) -> _timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        telemetry_id: _builtins.str = ...,
+        client_id: _builtins.str = ...,
+        timestamp: _timestamp_pb2.Timestamp | None = ...,
+        key: _builtins.str = ...,
+        payload: _builtins.str = ...,
+    ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _typing.Literal["timestamp", b"timestamp"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "key", b"key", "payload", b"payload", "telemetry_id", b"telemetry_id", "timestamp", b"timestamp"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
+
+Global___TelemetryRecord: _TypeAlias = TelemetryRecord  # noqa: Y015
+
+@_typing.final
+class AttributeRecord(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
+
+    ATTRIBUTE_ID_FIELD_NUMBER: _builtins.int
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    TIMESTAMP_FIELD_NUMBER: _builtins.int
+    KEY_FIELD_NUMBER: _builtins.int
+    PAYLOAD_FIELD_NUMBER: _builtins.int
+    attribute_id: _builtins.str
+    client_id: _builtins.str
+    key: _builtins.str
+    payload: _builtins.str
+    @_builtins.property
+    def timestamp(self) -> _timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        attribute_id: _builtins.str = ...,
+        client_id: _builtins.str = ...,
+        timestamp: _timestamp_pb2.Timestamp | None = ...,
+        key: _builtins.str = ...,
+        payload: _builtins.str = ...,
+    ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _typing.Literal["timestamp", b"timestamp"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["attribute_id", b"attribute_id", "client_id", b"client_id", "key", b"key", "payload", b"payload", "timestamp", b"timestamp"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
+
+Global___AttributeRecord: _TypeAlias = AttributeRecord  # noqa: Y015
+
+@_typing.final
+class RecordAck(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
+
+    RECORD_IDS_FIELD_NUMBER: _builtins.int
+    @_builtins.property
+    def record_ids(self) -> _containers.RepeatedScalarFieldContainer[_builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        record_ids: _abc.Iterable[_builtins.str] | None = ...,
+    ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["record_ids", b"record_ids"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
+
+Global___RecordAck: _TypeAlias = RecordAck  # noqa: Y015
+
+@_typing.final
+class InferenceResult(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
+
+    INFERENCE_RESULT_ID_FIELD_NUMBER: _builtins.int
+    NODE_ID_FIELD_NUMBER: _builtins.int
+    TIMESTAMP_FIELD_NUMBER: _builtins.int
+    KEY_FIELD_NUMBER: _builtins.int
+    PAYLOAD_FIELD_NUMBER: _builtins.int
+    INFERENCE_ID_FIELD_NUMBER: _builtins.int
+    MODEL_ID_FIELD_NUMBER: _builtins.int
+    inference_result_id: _builtins.str
+    node_id: _builtins.str
+    key: _builtins.str
+    payload: _builtins.str
+    inference_id: _builtins.str
+    model_id: _builtins.str
+    @_builtins.property
+    def timestamp(self) -> _timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        inference_result_id: _builtins.str = ...,
+        node_id: _builtins.str = ...,
+        timestamp: _timestamp_pb2.Timestamp | None = ...,
+        key: _builtins.str = ...,
+        payload: _builtins.str = ...,
+        inference_id: _builtins.str = ...,
+        model_id: _builtins.str = ...,
+    ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _typing.Literal["timestamp", b"timestamp"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["inference_id", b"inference_id", "inference_result_id", b"inference_result_id", "key", b"key", "model_id", b"model_id", "node_id", b"node_id", "payload", b"payload", "timestamp", b"timestamp"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
+
+Global___InferenceResult: _TypeAlias = InferenceResult  # noqa: Y015
 
 @_typing.final
 class TaskRequest(_message.Message):
@@ -379,8 +522,11 @@ class TaskRequest(_message.Message):
         status: _builtins.str = ...,
         client_id: _builtins.str = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "correlation_id", b"correlation_id", "data", b"data", "model_id", b"model_id", "round_id", b"round_id", "session_id", b"session_id", "status", b"status", "timestamp", b"timestamp", "type", b"type"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___TaskRequest: _TypeAlias = TaskRequest  # noqa: Y015
 
@@ -409,8 +555,11 @@ class ActivityReport(_message.Message):
         done: _builtins.bool = ...,
         response: _builtins.str = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["correlation_id", b"correlation_id", "done", b"done", "node_id", b"node_id", "response", b"response", "status", b"status"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___ActivityReport: _TypeAlias = ActivityReport  # noqa: Y015
 
@@ -419,20 +568,22 @@ class Heartbeat(_message.Message):
     DESCRIPTOR: _descriptor.Descriptor
 
     CLIENT_ID_FIELD_NUMBER: _builtins.int
-    MEMORY_UTILISATION_FIELD_NUMBER: _builtins.int
-    CPU_UTILISATION_FIELD_NUMBER: _builtins.int
+    HEARTBEAT_INTERVAL_MS_FIELD_NUMBER: _builtins.int
     client_id: _builtins.str
-    memory_utilisation: _builtins.float
-    cpu_utilisation: _builtins.float
+    heartbeat_interval_ms: _builtins.int
     def __init__(
         self,
         *,
         client_id: _builtins.str = ...,
-        memory_utilisation: _builtins.float = ...,
-        cpu_utilisation: _builtins.float = ...,
+        heartbeat_interval_ms: _builtins.int | None = ...,
     ) -> None: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "cpu_utilisation", b"cpu_utilisation", "memory_utilisation", b"memory_utilisation"]  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_heartbeat_interval_ms", b"_heartbeat_interval_ms", "heartbeat_interval_ms", b"heartbeat_interval_ms"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_heartbeat_interval_ms", b"_heartbeat_interval_ms", "client_id", b"client_id", "heartbeat_interval_ms", b"heartbeat_interval_ms"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    _WhichOneofReturnType__heartbeat_interval_ms: _TypeAlias = _typing.Literal["heartbeat_interval_ms"]  # noqa: Y015
+    _WhichOneofArgType__heartbeat_interval_ms: _TypeAlias = _typing.Literal["_heartbeat_interval_ms", b"_heartbeat_interval_ms"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__heartbeat_interval_ms) -> _WhichOneofReturnType__heartbeat_interval_ms | None: ...
 
 Global___Heartbeat: _TypeAlias = Heartbeat  # noqa: Y015
 
@@ -453,8 +604,11 @@ class ClientAvailableMessage(_message.Message):
         data: _builtins.str = ...,
         timestamp: _builtins.str = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "data", b"data", "timestamp", b"timestamp"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___ClientAvailableMessage: _TypeAlias = ClientAvailableMessage  # noqa: Y015
 
@@ -475,10 +629,43 @@ class ClientAnnounceRequest(_message.Message):
         type: _builtins.str = ...,
         parameters: _builtins.str = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "parameters", b"parameters", "type", b"type"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___ClientAnnounceRequest: _TypeAlias = ClientAnnounceRequest  # noqa: Y015
+
+@_typing.final
+class BacklogReport(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
+
+    CLIENT_ID_FIELD_NUMBER: _builtins.int
+    BACKLOG_TOTAL_FIELD_NUMBER: _builtins.int
+    BACKLOG_DROPPED_TOTAL_FIELD_NUMBER: _builtins.int
+    BACKLOG_OLDEST_AGE_MS_FIELD_NUMBER: _builtins.int
+    client_id: _builtins.str
+    backlog_total: _builtins.int
+    backlog_dropped_total: _builtins.int
+    backlog_oldest_age_ms: _builtins.float
+    def __init__(
+        self,
+        *,
+        client_id: _builtins.str = ...,
+        backlog_total: _builtins.int = ...,
+        backlog_dropped_total: _builtins.int = ...,
+        backlog_oldest_age_ms: _builtins.float | None = ...,
+    ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_backlog_oldest_age_ms", b"_backlog_oldest_age_ms", "backlog_oldest_age_ms", b"backlog_oldest_age_ms"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_backlog_oldest_age_ms", b"_backlog_oldest_age_ms", "backlog_dropped_total", b"backlog_dropped_total", "backlog_oldest_age_ms", b"backlog_oldest_age_ms", "backlog_total", b"backlog_total", "client_id", b"client_id"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    _WhichOneofReturnType__backlog_oldest_age_ms: _TypeAlias = _typing.Literal["backlog_oldest_age_ms"]  # noqa: Y015
+    _WhichOneofArgType__backlog_oldest_age_ms: _TypeAlias = _typing.Literal["_backlog_oldest_age_ms", b"_backlog_oldest_age_ms"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__backlog_oldest_age_ms) -> _WhichOneofReturnType__backlog_oldest_age_ms | None: ...
+
+Global___BacklogReport: _TypeAlias = BacklogReport  # noqa: Y015
 
 @_typing.final
 class ClientReport(_message.Message):
@@ -486,7 +673,11 @@ class ClientReport(_message.Message):
 
     CLIENT_ID_FIELD_NUMBER: _builtins.int
     REPORTS_FIELD_NUMBER: _builtins.int
+    POLL_INTERVAL_MS_FIELD_NUMBER: _builtins.int
+    SKIP_POLLING_TASKS_FIELD_NUMBER: _builtins.int
     client_id: _builtins.str
+    poll_interval_ms: _builtins.int
+    skip_polling_tasks: _builtins.bool
     @_builtins.property
     def reports(self) -> _containers.RepeatedCompositeFieldContainer[Global___ActivityReport]: ...
     def __init__(
@@ -494,9 +685,16 @@ class ClientReport(_message.Message):
         *,
         client_id: _builtins.str = ...,
         reports: _abc.Iterable[Global___ActivityReport] | None = ...,
+        poll_interval_ms: _builtins.int | None = ...,
+        skip_polling_tasks: _builtins.bool = ...,
     ) -> None: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["client_id", b"client_id", "reports", b"reports"]  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_poll_interval_ms", b"_poll_interval_ms", "poll_interval_ms", b"poll_interval_ms"]  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_poll_interval_ms", b"_poll_interval_ms", "client_id", b"client_id", "poll_interval_ms", b"poll_interval_ms", "reports", b"reports", "skip_polling_tasks", b"skip_polling_tasks"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    _WhichOneofReturnType__poll_interval_ms: _TypeAlias = _typing.Literal["poll_interval_ms"]  # noqa: Y015
+    _WhichOneofArgType__poll_interval_ms: _TypeAlias = _typing.Literal["_poll_interval_ms", b"_poll_interval_ms"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__poll_interval_ms) -> _WhichOneofReturnType__poll_interval_ms | None: ...
 
 Global___ClientReport: _TypeAlias = ClientReport  # noqa: Y015
 
@@ -512,8 +710,11 @@ class CombinerDirective(_message.Message):
         *,
         tasks: _abc.Iterable[Global___TaskRequest] | None = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["tasks", b"tasks"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___CombinerDirective: _TypeAlias = CombinerDirective  # noqa: Y015
 
@@ -528,8 +729,11 @@ class ModelRequest(_message.Message):
         *,
         model_id: _builtins.str = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["model_id", b"model_id"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___ModelRequest: _TypeAlias = ModelRequest  # noqa: Y015
 
@@ -544,8 +748,11 @@ class FileChunk(_message.Message):
         *,
         data: _builtins.bytes = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["data", b"data"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___FileChunk: _TypeAlias = FileChunk  # noqa: Y015
 
@@ -563,7 +770,10 @@ class ModelResponse(_message.Message):
         status: Global___ModelStatus.ValueType = ...,
         message: _builtins.str = ...,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
     _ClearFieldArgType: _TypeAlias = _typing.Literal["message", b"message", "status", b"status"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
 Global___ModelResponse: _TypeAlias = ModelResponse  # noqa: Y015

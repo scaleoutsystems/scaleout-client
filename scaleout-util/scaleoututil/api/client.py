@@ -1,12 +1,11 @@
 import inspect
 import os
 import re
-from datetime import datetime
 from typing import Callable, Dict, Optional
 
 import requests
 
-from scaleoututil.auth.token_manager import TokenManager
+from scaleoututil.auth.login import Login
 from scaleoututil.auth.token_cache import TokenCache
 from scaleoututil.logging import ScaleoutLogger
 from scaleoututil.serverfunctions.serverfunctionsbase import ServerFunctionsBase
@@ -29,6 +28,7 @@ class Scaleout:
     def __init__(
         self,
         host: str,
+        *,
         port: int = None,
         secure: Optional[bool] = None,
         verify: bool = True,
@@ -85,55 +85,36 @@ class Scaleout:
         self.verify = verify
         self.access_token_provider = access_token_provider
         self.auth_scheme = auth_scheme or os.environ.get("SCALEOUT_AUTH_SCHEME", "Bearer")
-        self.token_manager: Optional[TokenManager] = None
+        self.token_manager = None  # kept for backward compatibility
+        self._login: Optional[Login] = None
         self.headers = {}
 
         # Get token from args or env
         if not token:
             token = os.environ.get("SCALEOUT_AUTH_TOKEN", None)
 
-        safe_host = re.sub(r"[^\w.\-]", "_", host)
-        token_cache_id = f"api-client-{safe_host}-{port}"
-        token_cache = TokenCache(cache_id=token_cache_id, cache_dir=os.environ.get("SCALEOUT_TOKEN_CACHE_DIR", None))
-        if not token and token_cache.exists():
-            cached_data = token_cache.load()
-            if cached_data and cached_data.get("refresh_token"):
-                token = cached_data["refresh_token"]
-                ScaleoutLogger().info(f"Loaded refresh token from cache: {token_cache.cache_file}")
+        # Fall back to legacy token cache if no token provided
+        if not token:
+            safe_host = re.sub(r"[^\w.\-]", "_", host)
+            legacy_cache = TokenCache(cache_id=f"api-client-{safe_host}-{port}", cache_dir=os.environ.get("SCALEOUT_TOKEN_CACHE_DIR", None))
+            if legacy_cache.exists():
+                cached_data = legacy_cache.load()
+                if cached_data and cached_data.get("refresh_token"):
+                    token = cached_data["refresh_token"]
+                    ScaleoutLogger().info(f"Loaded refresh token from cache: {legacy_cache.cache_file}")
 
         # Clean token if it has scheme prefix
         if token and " " in token:
             token = token.split()[1]
 
-        # Initialize TokenManager with refresh token
         if token:
-            # Construct token endpoint if not provided
-            if not token_endpoint:
-                token_endpoint = self._get_url("api/auth/refresh")
-
-            # Create token refresh callback to save tokens to cache
-            def on_token_refresh(access_token: str, refresh_token: str, expires_at: datetime) -> None:
-                """Callback to save tokens when they are refreshed."""
-                try:
-                    token_cache.save(access_token, refresh_token, expires_at)
-                    ScaleoutLogger().debug(f"API client tokens updated in cache: {token_cache.cache_file}")
-                except Exception as e:
-                    ScaleoutLogger().warning(f"Failed to save API client tokens to cache: {e}")
-
-            # TokenManager will automatically fetch the first access token using the refresh token
+            server_url = self._get_url("")
             try:
-                self.token_manager = TokenManager(
-                    refresh_token=token,
-                    token_endpoint=token_endpoint,
-                    verify_ssl=verify,
-                    role="admin",
-                    on_token_refresh=on_token_refresh,
-                )
+                self._login = Login(server_url=server_url, credential=token, verify_ssl=verify)
             except (RuntimeError, requests.exceptions.RequestException) as e:
                 ScaleoutLogger().warning(
                     f"Token authentication failed ({e}). Continuing without authentication — this is expected if the target environment has no auth system."
                 )
-                self.token_manager = None
 
     def _get_url(self, endpoint):
         if self.secure:
@@ -162,11 +143,9 @@ class Scaleout:
             headers = {}
             if tok:
                 headers["Authorization"] = f"{self.auth_scheme} {tok}"
-        elif self.token_manager:
-            # Get fresh token from TokenManager (will auto-refresh if needed)
-            headers = self.token_manager.get_auth_header()
+        elif self._login:
+            headers = self._login.get_auth_header()
         else:
-            # Use static headers
             headers = self.headers.copy()
 
         # Merge additional headers if provided
@@ -389,6 +368,102 @@ class Scaleout:
 
         return _json
 
+    def set_public_hostname(self, id: str, public_hostname: str):
+        """Set the public hostname of a combiner.
+
+        :param id: The combiner id to update.
+        :type id: str
+        :param public_hostname: The public hostname to set.
+        :type public_hostname: str
+        :raises RuntimeError: If the server responds with a non-success status code.
+        :return: The server response (a success message).
+        :rtype: dict
+        """
+        response = requests.patch(
+            self._get_url_api_v1(f"combiners/{id}"),
+            json={"public_hostname": public_hostname},
+            verify=self.verify,
+            headers=self._get_headers(),
+        )
+
+        _json = response.json()
+
+        if response.status_code >= 400:
+            raise RuntimeError(_json.get("message", response.text))
+
+        return _json
+
+    # --- Commands --- #
+
+    def get_command(self, id: str):
+        """Get a command from the statestore.
+
+        :param id: The command id to get.
+        :type id: str
+        :return: Command.
+        :rtype: dict
+        """
+        response = requests.get(self._get_url_api_v1(f"commands/{id}"), verify=self.verify, headers=self._get_headers())
+
+        _json = response.json()
+
+        return _json
+
+    def get_commands(self, n_max: int = None, parent_correlation_id: str = None):
+        """Get commands in the network.
+
+        :param n_max: The maximum number of commands to get (If none all will be fetched).
+        :type n_max: int
+        :param parent_correlation_id: The parent correlation id to get commands for.
+        :type parent_correlation_id: str
+        :return: Commands.
+        :rtype: dict
+        """
+        additional_headers = {}
+        if n_max:
+            additional_headers["X-Limit"] = str(n_max)
+
+        _params = {}
+
+        if parent_correlation_id:
+            _params["parent_correlation_id"] = parent_correlation_id
+
+        response = requests.get(self._get_url_api_v1("commands/"), verify=self.verify, headers=self._get_headers(additional_headers), params=_params)
+
+        _json = response.json()
+
+        return _json
+
+    def get_commands_roots(self, n_max: int = None):
+        """Get root commands (commands without parent) in the network.
+
+        :param n_max: The maximum number of root commands to get (If none all will be fetched).
+        :type n_max: int
+        :return: Root commands.
+        :rtype: dict
+        """
+        additional_headers = {}
+        if n_max:
+            additional_headers["X-Limit"] = str(n_max)
+
+        response = requests.get(self._get_url_api_v1("commands/roots"), verify=self.verify, headers=self._get_headers(additional_headers))
+
+        _json = response.json()
+
+        return _json
+
+    def get_commands_count(self):
+        """Get the number of commands in the statestore.
+
+        :return: The number of commands.
+        :rtype: dict
+        """
+        response = requests.get(self._get_url_api_v1("commands/count"), verify=self.verify, headers=self._get_headers())
+
+        _json = response.json()
+
+        return _json
+
     # --- Controllers --- #
 
     def get_controller_status(self):
@@ -526,6 +601,8 @@ class Scaleout:
 
         :param path: The file path of the initial model to set.
         :type path: str
+        :raises RuntimeError: If the file type is unsupported (only .npz and .bin are supported),
+            or if the server responds with a non-success status code.
         :return: A dict with success or failure message.
         :rtype: dict
         """
@@ -533,15 +610,20 @@ class Scaleout:
             helper = "numpyhelper"
         elif path.endswith(".bin"):
             helper = "binaryhelper"
+        else:
+            raise RuntimeError("Unsupported file type. Only .npz and .bin files are supported.")
 
-        if helper:
-            response = requests.put(self._get_url_api_v1("helpers/active"), json={"helper": helper}, verify=self.verify, headers=self._get_headers())
+        response = requests.put(self._get_url_api_v1("helpers/active"), json={"helper": helper}, verify=self.verify, headers=self._get_headers())
+        if response.status_code >= 400:
+            raise RuntimeError(f"Failed to set active helper: {response.json().get('message', response.text)}")
 
         file_token = self._perform_chunked_upload(path)
 
         response = requests.post(
             self._get_url_api_v1("models/"), data={"helper": helper, "file_token": file_token}, verify=self.verify, headers=self._get_headers()
         )
+        if response.status_code >= 400:
+            raise RuntimeError(response.json().get("message", response.text))
         return response.json()
 
     # --- Packages --- #
@@ -630,21 +712,28 @@ class Scaleout:
         else:
             return {"success": False, "message": "Failed to download package."}
 
-    def set_active_package(self, path: str, helper: str, name: str, description: str = ""):
+    def set_active_package(self, path: str, helper: str, name: str, description: str = "", restart_clients: bool = False):
         """Set the compute package in the statestore.
 
         :param path: The file path of the compute package to set.
         :type path: str
         :param helper: The helper type to use.
         :type helper: str
+        :param restart_clients: Push the new package to connected clients and restart them.
+        :type restart_clients: bool
         :return: A dict with success or failure message.
         :rtype: dict
         """
         file_token = self._perform_chunked_upload(path)
 
+        data = {"helper": helper, "name": name, "description": description, "file_token": file_token, "file_name": os.path.basename(path)}
+        if restart_clients:
+            data["restart_clients"] = "true"
+            data["abort_ongoing_tasks"] = "true"
+
         response = requests.post(
             self._get_url_api_v1("packages/"),
-            data={"helper": helper, "name": name, "description": description, "file_token": file_token, "file_name": os.path.basename(path)},
+            data=data,
             verify=self.verify,
             headers=self._get_headers(),
         )
@@ -806,6 +895,7 @@ class Scaleout:
 
     def start_session(
         self,
+        *,
         name: str = None,
         aggregator: str = "fedavg",
         aggregator_kwargs: dict = None,
@@ -858,6 +948,15 @@ class Scaleout:
                     return {"message": "No models found in the repository"}
             else:
                 return {"message": "No models found in the repository"}
+
+        if helper is None:
+            response = requests.get(self._get_url_api_v1("helpers/active"), verify=self.verify, headers=self._get_headers())
+            if response.status_code == 400:
+                helper = "numpyhelper"
+            elif response.status_code == 200:
+                helper = response.json()
+            else:
+                return {"message": "An unexpected error occurred when getting the active helper"}
 
         response = requests.post(
             self._get_url_api_v1("sessions/"),
@@ -1033,6 +1132,7 @@ class Scaleout:
 
     def get_validations(
         self,
+        *,
         session_id: str = None,
         model_id: str = None,
         correlation_id: str = None,
@@ -1100,6 +1200,27 @@ class Scaleout:
         if session_id:
             _params["session_id"] = session_id
         response = requests.get(self._get_url_api_v1("validations/count"), params=_params, verify=self.verify, headers=self._get_headers())
+
+        _json = response.json()
+
+        return _json
+
+    def start_validation(self, session_id: str, model_id: str):
+        """Start a validation for a given session and model.
+
+        :param session_id: The id of the session to validate.
+        :type session_id: str
+        :param model_id: The id of the model to validate.
+        :type model_id: str
+        :return: A dict with success or failure message.
+        :rtype: dict
+        """
+        response = requests.post(
+            self._get_url_api_v1("validations/start"),
+            json={"session_id": session_id, "model_id": model_id},
+            verify=self.verify,
+            headers=self._get_headers(),
+        )
 
         _json = response.json()
 
@@ -1219,6 +1340,7 @@ class Scaleout:
 
         :param session_id: The id of the session to stop.
         :type session_id: str
+        :raises RuntimeError: If the server responds with a non-success status code.
         :return: A dict with success or failure message.
         :rtype: dict
         """
@@ -1229,6 +1351,9 @@ class Scaleout:
         )
 
         _json = response.json()
+
+        if response.status_code >= 400:
+            raise RuntimeError(_json.get("message", response.text))
 
         return _json
 

@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List
 
+from scaleoututil.logging import ScaleoutLogger
 from scaleoututil.utils.model import ScaleoutModel
 
 
@@ -27,7 +28,8 @@ class LocalModelRepository:
             if model_id not in model_cache:
                 model = ScaleoutModel.from_file(model_file)
                 if model_id != model.model_id:
-                    raise ValueError(f"Model ID mismatch: expected {model_id}, got {model.model_id}")
+                    ScaleoutLogger().error(f"{model_file} has invalid name")
+                    continue
                 self._models_cache.append(model)
 
         # Remove models from cache that no longer exist in the repository

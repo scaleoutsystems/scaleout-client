@@ -10,18 +10,27 @@ any object conforming to the protocol.
 """
 
 import enum
+import functools
+import os
 import threading
+import warnings
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Optional, Protocol, Tuple
+
+import psutil
+
+from scaleoututil.config import get_model_cache_dir
 
 from scaleoututil.utils.dist import get_version as _get_version
 
 import scaleoututil.grpc.scaleout_pb2 as scaleout_msg
 from scaleoututil.logging import ScaleoutLogger
+from scaleoututil.queue import LinkQuality, PriorityClass
 from scaleoututil.utils.model import ScaleoutModel
 
 from scaleout.client.grpc_handler import GrpcConnectionOptions  # re-exported for back-compat
 from scaleout.client.local_repository import LocalModelRepository
+from scaleout.client.inference_context import InferenceContext
 from scaleout.client.logging_context import LoggingContext
 
 VERSION = _get_version("scaleout")
@@ -58,9 +67,19 @@ class EdgeClientRuntime(Protocol):
     supply mocks or recorders without inheriting from it.
     """
 
+    @property
+    def link_quality(self) -> LinkQuality: ...
+
     def send_metric(self, metrics: dict, model_id: str, step: int, round_id: str, session_id: str) -> bool: ...
-    def send_attributes(self, attributes: dict) -> bool: ...
-    def send_telemetry(self, telemetry: dict) -> bool: ...
+    def send_attributes(self, attributes: dict, priority: Optional[str] = None) -> bool: ...
+    def send_telemetry(
+        self,
+        key: Optional[str] = None,
+        payload: Optional[dict] = None,
+        telemetry: Optional[dict] = None,
+        priority: Optional[str] = None,
+    ) -> bool: ...
+    def send_inference_result(self, key: str, payload: dict, inference_id: str, model_id: str, priority: Optional[str] = None) -> bool: ...
     def check_task_abort(self) -> None: ...
     def get_model_from_combiner(self, model_id: str) -> ScaleoutModel: ...
     def connect_to_api(
@@ -77,8 +96,13 @@ class EdgeClientRuntime(Protocol):
         url: Optional[str] = None,
         token_refresh_callback: Optional[Callable[..., None]] = None,
     ) -> bool: ...
-    def run(self, with_heartbeat: bool = False, with_polling: bool = True) -> None: ...
+    def run(self, with_heartbeat: bool = True, with_polling: bool = True) -> None: ...
     def get_access_token(self) -> Optional[str]: ...
+    def set_client(self, client: "EdgeClient") -> None: ...
+    def list_priority_classes(self) -> list[PriorityClass]: ...
+    def add_priority_class(self, cls: PriorityClass) -> None: ...
+    def remove_priority_class(self, name: str, force: bool = False) -> int: ...
+    def replace_priority_class(self, cls: PriorityClass) -> None: ...
 
 
 class EdgeClient:
@@ -100,25 +124,36 @@ class EdgeClient:
         self.client_id: Optional[str] = None
         self.package_path: str = "."
 
-        self.train_callback = train_callback
-        self.validate_callback = validate_callback
+        # Optional cross-process compute lock. When ``SCALEOUT_CLIENT_COMPUTE_LOCK``
+        # is set in the environment, train/validate callbacks are transparently
+        # wrapped so only one client at a time runs the user's compute. This is
+        # set up *before* assigning callbacks so wrapping applies to all entry
+        # points (constructor args + set_*_callback).
+        self._compute_lock = self._build_compute_lock()
+
+        self.train_callback = self._maybe_wrap_with_lock(train_callback)
+        self.validate_callback = self._maybe_wrap_with_lock(validate_callback)
 
         self.inference_callback: Optional[Callable[[ScaleoutModel, Dict], Any]] = None
         self.stage_model_callback: Optional[Callable[[ScaleoutModel], None]] = None
 
         self.registered_callbacks: Dict[str, Callable[[scaleout_msg.TaskRequest], Dict]] = {}
 
-        self.local_repository = LocalModelRepository(repository_path="./.model_cache")
+        self.local_repository = LocalModelRepository(repository_path=get_model_cache_dir())
         ScaleoutLogger().info(f"Scaleout version {VERSION}")
 
         self._current_logging_context = threading.local()
+        self._current_inference_context = threading.local()
+        self._telemetry_stop = threading.Event()
 
         if runtime is None:
             # Lazy import to break the edge_client <-> grpc_edge_client_runtime cycle.
             from scaleout.client.grpc_edge_client_runtime import GrpcEdgeClientRuntime  # noqa: PLC0415
 
-            runtime = GrpcEdgeClientRuntime(self)
+            runtime = GrpcEdgeClientRuntime()
+
         self._runtime: EdgeClientRuntime = runtime
+        runtime.set_client(self)
 
     # -- logging context -------------------------------------------------------
 
@@ -142,6 +177,28 @@ class EdgeClient:
         finally:
             self.current_logging_context = prev_context
 
+    # -- inference context -----------------------------------------------------
+
+    @property
+    def current_inference_context(self) -> Optional[InferenceContext]:
+        """Get the current inference context for the running thread."""
+        return getattr(self._current_inference_context, "value", None)
+
+    @current_inference_context.setter
+    def current_inference_context(self, context: InferenceContext) -> None:
+        """Set the current inference context for the running thread."""
+        self._current_inference_context.value = context
+
+    @contextmanager
+    def inference_context(self, context: InferenceContext):
+        """Set the inference context for the duration of the block."""
+        prev_context = self.current_inference_context
+        self.current_inference_context = context
+        try:
+            yield
+        finally:
+            self.current_inference_context = prev_context
+
     # -- identity --------------------------------------------------------------
 
     def set_name(self, name: str) -> None:
@@ -154,15 +211,122 @@ class EdgeClient:
         ScaleoutLogger().info(f"Setting client ID to: {client_id}")
         self.client_id = client_id
 
+    # -- link quality ----------------------------------------------------------
+
+    @property
+    def link_quality(self) -> LinkQuality:
+        """Current client-internal link quality derived from the runtime."""
+        return self._runtime.link_quality
+
+    # -- default telemetry loop ------------------------------------------------
+
+    _TELEMETRY_HEALTHY_INTERVAL = 5.0
+    _TELEMETRY_DEGRADED_INTERVAL = 30.0
+
+    def _default_telemetry_loop(self) -> None:
+        """Emit memory and CPU telemetry until stop_default_telemetry_loop is called.
+
+        Stretches the sampling interval to 30 s when the link is DEGRADED so
+        stale system-health samples do not crowd out higher-priority traffic.
+        """
+        self._telemetry_stop.clear()
+        while not self._telemetry_stop.is_set():
+            memory_usage = psutil.virtual_memory().percent
+            cpu_usage = psutil.cpu_percent()
+            try:
+                self.log_telemetry(key="memory_usage", payload={"value": memory_usage})
+                self.log_telemetry(key="cpu_usage", payload={"value": cpu_usage})
+            except Exception as e:
+                ScaleoutLogger().warning(f"Enqueueing telemetry failed: {e}")
+            interval = (
+                self._TELEMETRY_DEGRADED_INTERVAL
+                if self.link_quality == LinkQuality.DEGRADED or self.link_quality == LinkQuality.OFFLINE
+                else self._TELEMETRY_HEALTHY_INTERVAL
+            )
+            if self._telemetry_stop.wait(interval):
+                break
+
+    def stop_default_telemetry_loop(self) -> None:
+        """Signal default_telemetry_loop to exit at its next sleep boundary."""
+        self._telemetry_stop.set()
+
     # -- callback registration -------------------------------------------------
 
     def set_train_callback(self, callback: callable) -> None:
-        """Set the train callback."""
-        self.train_callback = callback
+        """Register the callback invoked when a training task request arrives.
+
+        Called by the client with the current global model each time the
+        combiner dispatches a training request. The callback should perform
+        the local training update and return the new model.
+
+        Args:
+            callback (callable): ``(scaleout_model, settings) -> (model, metadata)``
+
+                - ``scaleout_model`` (ScaleoutModel): The current model to train.
+                  Load parameters with ``scaleout_model.get_training_model(helper)``.
+                - ``settings`` (dict): Training settings for this round (e.g.
+                  epochs, batch size, learning rate).
+                - Returns a tuple of the updated model and a metadata dict. The
+                  metadata dict is used by the aggregator and for logging; for
+                  the default aggregators (fedavg, fedopt) it must at least
+                  contain ``{"training_metadata": {"num_examples": int}}``.
+
+                Call ``self.check_task_abort()`` periodically during training
+                (e.g. once few iterations) to allow the task to be stopped
+                gracefully if the session is terminated from the server, and
+                use ``self.log_metric(...)`` to report progress in real time.
+        """
+        self.train_callback = self._maybe_wrap_with_lock(callback)
 
     def set_validate_callback(self, callback: callable) -> None:
-        """Set the validate callback."""
-        self.validate_callback = callback
+        """Register the callback invoked when a validation task request arrives.
+
+        Called by the client after a new global model has been produced, so
+        the callback can validate that model and report metrics. Registering
+        this callback is optional.
+
+        Args:
+            callback (callable): ``(scaleout_model) -> metrics``
+
+                - ``scaleout_model`` (ScaleoutModel): The model to validate.
+                  Load parameters with ``scaleout_model.get_training_model(helper)``.
+                - Returns a dict of validation metrics. Scalar entries are
+                  captured and visualized in the Scaleout Edge UI; the entire
+                  dict is stored in the backend and accessible via the API/UI.
+        """
+        self.validate_callback = self._maybe_wrap_with_lock(callback)
+
+    # -- compute lock ----------------------------------------------------------
+    # When SCALEOUT_CLIENT_COMPUTE_LOCK is set in the environment, train and
+    # validate callbacks are wrapped in ``with FileLock(path):`` so siblings
+    # that share the same lock path execute compute one at a time. The
+    # external orchestrator (e.g. scaleoututil.launchers.launch_clients) sets
+    # this env var; user-written client packages don't need to know about it.
+    # This bounds peak memory when N clients share one CPU/GPU.
+
+    @staticmethod
+    def _build_compute_lock():
+        path = os.environ.get("SCALEOUT_CLIENT_COMPUTE_LOCK")
+        if not path:
+            return None
+        try:
+            from filelock import FileLock  # noqa: PLC0415 - optional dep
+        except ImportError as e:
+            raise RuntimeError("SCALEOUT_CLIENT_COMPUTE_LOCK is set but the 'filelock' package is not installed in this environment.") from e
+        ScaleoutLogger().info(f"Serializing train/validate compute via {path}")
+        return FileLock(path)
+
+    def _maybe_wrap_with_lock(self, callback):
+        if callback is None or self._compute_lock is None:
+            return callback
+        lock = self._compute_lock
+
+        @functools.wraps(callback)
+        def wrapped(*args, **kwargs):
+            with lock:
+                return callback(*args, **kwargs)
+
+        return wrapped
 
     def set_inference_callback(self, callback: Callable[[ScaleoutModel, Dict], Any]) -> None:
         """Set the inference callback."""
@@ -232,37 +396,99 @@ class EdgeClient:
             self._runtime.check_task_abort()
         return success
 
-    def log_attributes(self, attributes: dict, check_task_abort: bool = True) -> bool:
+    def log_attributes(self, attributes: dict, priority: Optional[str] = None, check_task_abort: bool = True) -> bool:
         """Log the attributes to the server.
 
         Args:
             attributes (dict): The attributes to log.
+            priority (str, optional): Priority class name (e.g. "artifact"). Defaults to "artifact".
             check_task_abort (bool, optional): Whether or not to check for task abort. Defaults to True.
 
         Returns:
             bool: True if the attributes were logged successfully, False otherwise.
 
         """
-        success = self._runtime.send_attributes(attributes)
+        success = self._runtime.send_attributes(attributes, priority=priority)
         if check_task_abort:
             self._runtime.check_task_abort()
         return success
 
-    def log_telemetry(self, telemetry: dict, check_task_abort: bool = True) -> bool:
-        """Log the telemetry data to the server.
+    def log_telemetry(
+        self,
+        key: Optional[str] = None,
+        payload: Optional[dict] = None,
+        telemetry: Optional[dict] = None,
+        priority: Optional[str] = None,
+        check_task_abort: bool = True,
+    ) -> bool:
+        """Log a telemetry observation to the server.
+
+        Intended usage: ``log_telemetry(key="loss", payload={"value": 0.5, "step": 12})``.
 
         Args:
-            telemetry (dict): The telemetry data to log.
-            check_task_abort (bool, optional): Whether or not to check for task abort. Defaults to True.
+            key (str): Telemetry key (e.g. metric name).
+            payload (dict, optional): JSON payload — typically ``{"value": <float>, ...}``
+                for plottable scalars, or arbitrary structured data for coupled
+                observations (coordinates, bundles).
+            telemetry (dict, optional): **Legacy** — mapping of key to scalar value.
+                In record mode this emits a warning and expands to one record per pair.
+                In legacy mode (``SCALEOUT_CLIENT_LEGACY_TELEMETRY=true``) it is the
+                accepted shape.
+            priority (str, optional): Priority class name (e.g. "alert"). Defaults to "telemetry".
+            check_task_abort (bool, optional): Whether to check for task abort. Defaults to True.
 
         Returns:
-            bool: True if the telemetry data was logged successfully, False otherwise.
+            bool: True if the telemetry was accepted into the queue.
 
+        Backward compat: existing positional callers passing a dict
+        (``log_telemetry({"loss": 0.5})``) are accepted; the dict is routed
+        through the legacy ``telemetry`` slot.
         """
-        success = self._runtime.send_telemetry(telemetry)
+        # Back-compat: existing positional callers pass a dict where `key` now lives.
+        if isinstance(key, dict):
+            warnings.warn(
+                "log_telemetry: passing a telemetry dict positionally is deprecated; use 'key' (+ 'payload') instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if telemetry is not None:
+                ScaleoutLogger().warning("log_telemetry: both positional dict and 'telemetry=' supplied; using positional")
+            telemetry = key
+            key = None
+        success = self._runtime.send_telemetry(key=key, payload=payload, telemetry=telemetry, priority=priority)
         if check_task_abort:
             self._runtime.check_task_abort()
         return success
+
+    def log_inference_result(
+        self,
+        key: str,
+        payload: dict,
+        context: Optional[InferenceContext] = None,
+        priority: Optional[str] = None,
+    ) -> bool:
+        """Log an inference result (sighting/observation) to the server.
+
+        Args:
+            key (str): A label for this result type (e.g. "detection", "classification").
+            payload (dict): JSON-serialisable observation data.
+            context (InferenceContext, optional): Override the thread-local inference context.
+            priority (str, optional): Priority class name (e.g. "telemetry"). Defaults to "inference".
+
+        Returns:
+            bool: True if the result was accepted into the queue, False if no context is set.
+        """
+        context = context or self.current_inference_context
+        if context is None:
+            ScaleoutLogger().warning("log_inference_result called without an active InferenceContext; result dropped")
+            return False
+        return self._runtime.send_inference_result(
+            key=key,
+            payload=payload,
+            inference_id=context.inference_id,
+            model_id=context.model_id,
+            priority=priority,
+        )
 
     def check_task_abort(self) -> None:
         """Check if the ongoing task has been aborted.
@@ -276,6 +502,51 @@ class EdgeClient:
 
         """
         self._runtime.check_task_abort()
+
+    # -- priority class management --------------------------------------------
+
+    @property
+    def priority_classes(self) -> list[PriorityClass]:
+        """Return the currently registered priority classes (excludes internal default)."""
+        return self._runtime.list_priority_classes()
+
+    def add_priority_class(self, cls: PriorityClass) -> None:
+        """Register a new priority class for use with log_* methods.
+
+        Args:
+            cls (PriorityClass): The class to register. Its name must be unique.
+
+        Raises:
+            ValueError: If a class with that name already exists.
+        """
+        self._runtime.add_priority_class(cls)
+
+    def remove_priority_class(self, name: str, force: bool = False) -> int:
+        """Remove a registered priority class.
+
+        Args:
+            name (str): The class name to remove.
+            force (bool): If True, migrate queued records to the default class.
+                If False, raises ValueError when the class is non-empty.
+
+        Returns:
+            int: Number of records migrated to the default class.
+        """
+        return self._runtime.remove_priority_class(name, force)
+
+    def replace_priority_class(self, cls: PriorityClass) -> None:
+        """Update an existing priority class definition in-place.
+
+        Queued records are not moved — they pick up the new parameters on the
+        next scheduling pass.
+
+        Args:
+            cls (PriorityClass): Replacement definition. Its name must match an existing class.
+
+        Raises:
+            KeyError: If no class with that name exists.
+        """
+        self._runtime.replace_priority_class(cls)
 
     # -- connection / lifecycle (delegated) -----------------------------------
 
@@ -299,7 +570,7 @@ class EdgeClient:
         """Initialize the runtime's transport handler."""
         return self._runtime.init_grpchandler(config=config, token=token, url=url, token_refresh_callback=token_refresh_callback)
 
-    def run(self, with_heartbeat: bool = False, with_polling: bool = True) -> None:
+    def run(self, with_heartbeat: bool = True, with_polling: bool = True) -> None:
         """Run the client's event loop via the runtime."""
         self._runtime.run(with_heartbeat=with_heartbeat, with_polling=with_polling)
 
@@ -341,5 +612,4 @@ class EdgeClient:
 
         if model is None:
             raise ValueError("Model not found in repository.")
-
         return self.inference_callback(model, params)

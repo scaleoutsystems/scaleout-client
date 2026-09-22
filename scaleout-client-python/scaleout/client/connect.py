@@ -12,13 +12,12 @@ import requests
 
 from scaleoututil.config import (
     SCALEOUT_AUTH_REFRESH_TOKEN,
-    SCALEOUT_AUTH_REFRESH_TOKEN_URI,
     SCALEOUT_AUTH_SCHEME,
     SCALEOUT_CUSTOM_URL_PREFIX,
 )
 from scaleoututil.logging import ScaleoutLogger
 from scaleoututil.utils.http_status_codes import HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_NO_CONTENT, HTTP_STATUS_OK, HTTP_STATUS_UNAUTHORIZED
-from scaleoututil.auth.token_manager import TokenManager
+from scaleoututil.auth.login import Login
 
 # Default timeout for requests
 REQUEST_TIMEOUT = 10  # seconds
@@ -92,6 +91,7 @@ class ConnectorClient:
 
     def __init__(
         self,
+        *,
         host: str,
         port: int,
         token: str,
@@ -132,21 +132,24 @@ class ConnectorClient:
         self.prefix = "https://" if force_ssl else "http://"
         self.connect_string = f"{self.prefix}{self.host}:{self.port}" if self.port else f"{self.prefix}{self.host}"
 
-        # Initialize token manager with refresh capability
-        if refresh_token or SCALEOUT_AUTH_REFRESH_TOKEN:
-            self.token_manager = TokenManager(
-                access_token=token,
-                refresh_token=refresh_token or SCALEOUT_AUTH_REFRESH_TOKEN,
-                token_endpoint=token_endpoint or SCALEOUT_AUTH_REFRESH_TOKEN_URI,
+        # Initialize Login with refresh capability
+        credential = refresh_token or SCALEOUT_AUTH_REFRESH_TOKEN
+        if credential:
+            self._login = Login(
+                server_url=self.connect_string,
+                credential=credential,
                 verify_ssl=self.verify,
+                client_id=self.id,
             )
-            ScaleoutLogger().info("TokenManager initialized with refresh token support")
+            self.token_manager = None  # kept for backward compatibility
+            ScaleoutLogger().debug("Login initialized with refresh token support")
         else:
+            self._login = None
             self.token_manager = None
             self.token = token
             ScaleoutLogger().warning("No refresh token provided - automatic token refresh disabled")
 
-        ScaleoutLogger().info(f"Setting connection string to {self.connect_string}.")
+        ScaleoutLogger().debug(f"Setting connection string to {self.connect_string}.")
 
     def _get_current_token(self) -> str:
         """Get current access token, using TokenManager if available.
@@ -155,8 +158,8 @@ class ConnectorClient:
             Current access token
 
         """
-        if self.token_manager:
-            return self.token_manager.get_access_token()
+        if self._login:
+            return self._login.get_access_token()
         return self.token
 
     def assign(self) -> Tuple[Status, Optional[dict]]:
@@ -196,15 +199,14 @@ class ConnectorClient:
             reason = retval.json().get("message", "Unauthorized connection to reducer, make sure the correct token is set")
             ScaleoutLogger().warning(reason)
 
-            # If we have a token manager and it's a token expiration, try to refresh and retry
-            if self.token_manager and reason == "Token expired":
+            # On a server-reported token expiry, force a refresh via Login (the local
+            # token can still look valid here due to clock skew) and signal a retry.
+            if self._login and reason == "Token expired":
                 try:
-                    # Force a token refresh
-                    ScaleoutLogger().info("Attempting manual token refresh...")
-                    with self.token_manager._lock:
-                        self.token_manager._perform_token_refresh()
-                    ScaleoutLogger().info("Token refreshed, retrying assignment...")
-                    return Status.TryAgain, reason
+                    ScaleoutLogger().info("Access token expired; forcing refresh...")
+                    if self._login.refresh() is not None:
+                        ScaleoutLogger().info("Token refreshed, retrying assignment...")
+                        return Status.TryAgain, reason
                 except Exception as e:
                     ScaleoutLogger().error(f"Token refresh failed: {e}")
                     return Status.UnAuthorized, "Could not refresh token"

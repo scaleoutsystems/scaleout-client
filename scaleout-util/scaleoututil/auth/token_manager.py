@@ -8,7 +8,7 @@ import requests
 
 from scaleoututil.config import SCALEOUT_AUTH_REFRESH_TOKEN_URI, SCALEOUT_AUTH_SCHEME
 from scaleoututil.logging import ScaleoutLogger
-from scaleoututil.utils.http_status_codes import HTTP_STATUS_OK, HTTP_STATUS_NO_CONTENT, HTTP_STATUS_UNAUTHORIZED
+from scaleoututil.utils.http_status_codes import HTTP_STATUS_OK, HTTP_STATUS_NO_CONTENT, HTTP_STATUS_UNAUTHORIZED, HTTP_STATUS_SERVER_ERROR
 
 # Default timeout for requests
 REQUEST_TIMEOUT = 10  # seconds
@@ -16,6 +16,17 @@ REQUEST_TIMEOUT = 10  # seconds
 # Buffer time before token expires to trigger refresh (30 seconds)
 # This should be less than half the token lifetime to avoid immediate refresh loops
 TOKEN_REFRESH_BUFFER_SECONDS = 30
+
+# Minimum time between refresh attempts after a network failure
+TOKEN_REFRESH_COOLDOWN_SECONDS = 10
+
+
+class TokenRefreshNetworkError(RuntimeError):
+    """Raised when token refresh fails due to a transient network error."""
+
+
+class TokenRefreshPermanentError(RuntimeError):
+    """Raised when token refresh fails due to a permanent error."""
 
 
 class TokenManager:
@@ -28,6 +39,7 @@ class TokenManager:
 
     def __init__(
         self,
+        *,
         access_token: Optional[str] = None,
         refresh_token: Optional[str] = None,
         token_endpoint: Optional[str] = None,
@@ -54,18 +66,19 @@ class TokenManager:
         self._token_endpoint = SCALEOUT_AUTH_REFRESH_TOKEN_URI or token_endpoint
         self._verify_ssl = verify_ssl
         self._lock = threading.Lock()
-        self._refresh_promise: Optional[threading.Event] = None
         self._on_token_refresh = on_token_refresh
+        self._token_expires_at = None
+        self._refresh_not_before = None
 
         if not self._token_endpoint:
             ScaleoutLogger().warning("No token endpoint provided; token refresh will not be available.")
 
         # If no access token provided but refresh token is available, perform initial refresh
         if not self._access_token and self._refresh_token:
-            ScaleoutLogger().info("No access token provided, performing initial token exchange...")
+            ScaleoutLogger().debug("No access token provided, performing initial token exchange...")
             try:
                 self._perform_token_refresh()
-                ScaleoutLogger().info(f"Initial token obtained. Token expires at: {self._token_expires_at}")
+                ScaleoutLogger().debug(f"Initial token obtained. Token expires at: {self._token_expires_at}")
             except RuntimeError as e:
                 ScaleoutLogger().error(f"Initial token exchange failed: {e}")
                 ScaleoutLogger().info("Hint: If you have a cached token, try running without the --token flag to use the cached refresh token.")
@@ -76,11 +89,9 @@ class TokenManager:
             # Extract expiration from JWT or use provided expires_in
             if self._access_token:
                 self._token_expires_at = self._extract_expiration(self._access_token, expires_in)
-            else:
-                # No token yet, set a default
-                expires_in = expires_in or 3600
+            elif expires_in:
                 self._token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
-            ScaleoutLogger().info(f"TokenManager initialized. Token expires at: {self._token_expires_at}")
+            ScaleoutLogger().debug(f"TokenManager initialized. Token expires at: {self._token_expires_at}")
 
     def get_access_token(self) -> str:
         """Get current access token, refreshing if necessary.
@@ -93,40 +104,40 @@ class TokenManager:
             Current valid access token
 
         Raises:
-            RuntimeError: If token refresh fails
+            TokenRefreshPermanentError(RuntimeError): If token refresh fails with a permement error
+            TokenRefreshNetworkError(RuntimeError): If token refresh fails with a transient error
 
         """
         # Check if token needs refresh (with buffer time)
+        refresh_error = None
 
         if self._should_refresh_token():
             with self._lock:
+                if self.is_token_expired():
+                    # If the access_token is old there is no need to try to keep it anymore
+                    self._access_token = None
                 # Double-check after acquiring lock (another thread might have refreshed)
                 if self._should_refresh_token():
-                    # Check if a refresh is already in progress
-                    if self._refresh_promise is not None:
-                        # Wait for the ongoing refresh
-                        ScaleoutLogger().debug("Token refresh already in progress, waiting...")
-                        refresh_event = self._refresh_promise
-                        # Release lock while waiting
-                        self._lock.release()
-                        try:
-                            refresh_event.wait(timeout=30)
-                        finally:
-                            self._lock.acquire()
-                    else:
-                        # Start a new refresh
-                        self._refresh_promise = threading.Event()
-                        try:
-                            self._perform_token_refresh()
-                            self._refresh_promise.set()
-                        except Exception as e:
-                            self._refresh_promise.set()
-                            self._refresh_promise = None
-                            raise RuntimeError(f"Token refresh failed: {e}")
-                        finally:
-                            self._refresh_promise = None
+                    now = datetime.now(timezone.utc)
+                    if self._refresh_not_before and now < self._refresh_not_before:
+                        raise TokenRefreshNetworkError("Refresh cooldown active")
+                    try:
+                        self._perform_token_refresh()
+                    except TokenRefreshPermanentError as e:
+                        raise e
+                    except Exception as e:
+                        # Treat all other exceptions as transient errors
+                        self._refresh_not_before = now + timedelta(seconds=TOKEN_REFRESH_COOLDOWN_SECONDS)
+                        refresh_error = e
+                        ScaleoutLogger().warning(f"Token refresh failed with transient error: {e}")
 
-        return self._access_token
+        if not self.is_token_expired() and self._access_token:
+            # Get the access token
+            return self._access_token
+        elif refresh_error is not None:
+            raise TokenRefreshNetworkError(f"Token refresh failed: {refresh_error}")
+        else:
+            raise TokenRefreshNetworkError("No access token availible, waiting for refresh")
 
     def _should_refresh_token(self) -> bool:
         """Check if token should be refreshed.
@@ -139,9 +150,12 @@ class TokenManager:
             return False
 
         # Refresh if token expires within the buffer time
-        now = datetime.now(timezone.utc)
-        time_until_expiry = (self._token_expires_at - now).total_seconds()
-        should_refresh = time_until_expiry < TOKEN_REFRESH_BUFFER_SECONDS
+        if self._token_expires_at is not None:
+            now = datetime.now(timezone.utc)
+            time_until_expiry = (self._token_expires_at - now).total_seconds()
+            should_refresh = time_until_expiry < TOKEN_REFRESH_BUFFER_SECONDS
+        else:
+            return True
 
         if should_refresh:
             ScaleoutLogger().debug(f"Token needs refresh. Expires in {time_until_expiry:.0f}s (buffer: {TOKEN_REFRESH_BUFFER_SECONDS}s)")
@@ -211,7 +225,7 @@ class TokenManager:
                 error_text = response.text
                 ScaleoutLogger().error(f"Refresh token is invalid or expired: {error_text}")
                 ScaleoutLogger().debug("The refresh token may have been revoked or expired. You may need to log in again to obtain a new refresh token.")
-                raise RuntimeError("Refresh token is invalid or expired. Please log in again to obtain a new token.")
+                raise TokenRefreshPermanentError("Refresh token is invalid or expired. Please log in again to obtain a new token.")
 
             if not (HTTP_STATUS_OK <= response.status_code < HTTP_STATUS_NO_CONTENT):
                 error_text = response.text
@@ -222,12 +236,16 @@ class TokenManager:
                         "Token refresh failed: HTTP request sent to HTTPS port."
                         "If using port 443 or an HTTPS endpoint, set secure=True in Scaleout initialization."
                     )
-                    raise RuntimeError(
+                    raise TokenRefreshPermanentError(
                         "Token refresh failed: HTTP request sent to HTTPS port. Please set secure=True when initializing Scaleout for HTTPS endpoints."
                     )
 
                 ScaleoutLogger().error(f"Token refresh failed with status {response.status_code}: {error_text}")
-                raise RuntimeError(f"Token refresh failed with status {response.status_code}")
+                # 4xx (except 429) are permanent — retrying won't help
+                HTTP_STATUS_TOO_MANY_REQUESTS = 429
+                if response.status_code < HTTP_STATUS_SERVER_ERROR and response.status_code != HTTP_STATUS_TOO_MANY_REQUESTS:
+                    raise TokenRefreshPermanentError(f"Token refresh failed with status {response.status_code}")
+                raise TokenRefreshNetworkError(f"Token refresh failed with status {response.status_code}")
 
             response_data = response.json()
             new_access_token = response_data.get("access_token") or response_data.get("access")
@@ -235,7 +253,7 @@ class TokenManager:
             expires_in = response_data.get("expires_in")
 
             if not new_access_token:
-                raise RuntimeError("No access token in refresh response")
+                raise TokenRefreshPermanentError("No access token in refresh response")
 
             # Update tokens
             self._access_token = new_access_token
@@ -245,7 +263,7 @@ class TokenManager:
             # Extract expiration from JWT (with fallback to expires_in from response)
             self._token_expires_at = self._extract_expiration(new_access_token, expires_in)
 
-            ScaleoutLogger().debug(f"Access token refreshed successfully. New expiration: {self._token_expires_at}")
+            ScaleoutLogger().info(f"Access token refreshed successfully. New expiration: {self._token_expires_at}")
 
             # Call the callback if provided (after setting expiration)
             if self._on_token_refresh:
@@ -297,4 +315,4 @@ class TokenManager:
             True if token is expired, False otherwise
 
         """
-        return datetime.now(timezone.utc) >= self._token_expires_at
+        return not self._token_expires_at or datetime.now(timezone.utc) >= self._token_expires_at

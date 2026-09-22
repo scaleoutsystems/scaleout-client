@@ -1,0 +1,6 @@
+.env
+data
+package
+.scaleout
+*.tgz
+*.tar.gz

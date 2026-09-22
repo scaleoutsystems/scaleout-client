@@ -1,1 +1,4 @@
 .model_cache
+.minst-pytorch-*
+.venv-*
+*.yaml
