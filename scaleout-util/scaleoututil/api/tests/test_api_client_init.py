@@ -15,8 +15,8 @@ class TestScaleoutInitialization(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         # Disable token manager for initialization tests
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         
         # Mock TokenCache to prevent file operations
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
@@ -162,8 +162,8 @@ class TestScaleoutURLConstruction(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         # Disable token manager for URL tests
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         
         # Mock TokenCache to prevent file operations
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
@@ -217,8 +217,8 @@ class TestScaleoutEdgeCases(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         # Disable token manager
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         
         # Mock TokenCache
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
@@ -310,8 +310,8 @@ class TestScaleoutAuthScheme(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
@@ -352,8 +352,8 @@ class TestScaleoutTokenEndpoint(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
@@ -364,38 +364,37 @@ class TestScaleoutTokenEndpoint(unittest.TestCase):
         self.cache_patch.stop()
 
     def test_token_endpoint_constructed_https(self):
-        """Test token endpoint is constructed correctly for HTTPS."""
+        """Test Login is initialised with the correct server_url for HTTPS."""
         client = Scaleout(host="example.com", secure=True, token="test-token")
-        
-        # Verify TokenManager was called with correct endpoint
-        self.mock_token_manager.assert_called_once()
-        call_kwargs = self.mock_token_manager.call_args[1]
-        self.assertEqual(call_kwargs['token_endpoint'], "https://example.com:443/api/auth/refresh")
+
+        self.mock_login.assert_called_once()
+        call_kwargs = self.mock_login.call_args[1]
+        self.assertEqual(call_kwargs['server_url'], "https://example.com:443/")
 
     def test_token_endpoint_constructed_http(self):
-        """Test token endpoint is constructed correctly for HTTP."""
+        """Test Login is initialised with the correct server_url for HTTP."""
         client = Scaleout(host="example.com", secure=False, token="test-token")
-        
-        self.mock_token_manager.assert_called_once()
-        call_kwargs = self.mock_token_manager.call_args[1]
-        self.assertEqual(call_kwargs['token_endpoint'], "http://example.com:80/api/auth/refresh")
+
+        self.mock_login.assert_called_once()
+        call_kwargs = self.mock_login.call_args[1]
+        self.assertEqual(call_kwargs['server_url'], "http://example.com:80/")
 
     def test_token_endpoint_with_custom_port(self):
-        """Test token endpoint with custom port."""
+        """Test Login is initialised with the correct server_url for a custom port."""
         client = Scaleout(host="example.com", port=8443, secure=True, token="test-token")
-        
-        self.mock_token_manager.assert_called_once()
-        call_kwargs = self.mock_token_manager.call_args[1]
-        self.assertEqual(call_kwargs['token_endpoint'], "https://example.com:8443/api/auth/refresh")
+
+        self.mock_login.assert_called_once()
+        call_kwargs = self.mock_login.call_args[1]
+        self.assertEqual(call_kwargs['server_url'], "https://example.com:8443/")
 
     def test_explicit_token_endpoint_parameter(self):
-        """Test that explicit token_endpoint parameter is used."""
-        custom_endpoint = "https://auth.example.com/refresh"
-        client = Scaleout(host="example.com", token="test-token", token_endpoint=custom_endpoint)
-        
-        self.mock_token_manager.assert_called_once()
-        call_kwargs = self.mock_token_manager.call_args[1]
-        self.assertEqual(call_kwargs['token_endpoint'], custom_endpoint)
+        """Test that Login is still called when token_endpoint kwarg is passed (token_endpoint is unused by Login)."""
+        Scaleout(host="example.com", token="test-token", token_endpoint="https://auth.example.com/refresh")
+
+        # Login is invoked; endpoint routing is now internal to Login
+        self.mock_login.assert_called_once()
+        call_kwargs = self.mock_login.call_args[1]
+        self.assertEqual(call_kwargs['credential'], "test-token")
 
 
 class TestScaleoutConfusingCombinations(unittest.TestCase):
@@ -403,8 +402,8 @@ class TestScaleoutConfusingCombinations(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
@@ -451,8 +450,8 @@ class TestScaleoutEdgeCasesAndMalformed(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
@@ -506,8 +505,8 @@ class TestScaleoutEnvironmentVariables(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
@@ -538,37 +537,34 @@ class TestScaleoutEnvironmentVariables(unittest.TestCase):
         """Test token is loaded from SCALEOUT_AUTH_TOKEN env var."""
         os.environ['SCALEOUT_AUTH_TOKEN'] = "env-token"
         client = Scaleout(host="example.com")
-        
-        # TokenManager should be called with token from env
-        self.mock_token_manager.assert_called_once()
-        call_kwargs = self.mock_token_manager.call_args[1]
-        self.assertEqual(call_kwargs['refresh_token'], "env-token")
+
+        self.mock_login.assert_called_once()
+        call_kwargs = self.mock_login.call_args[1]
+        self.assertEqual(call_kwargs['credential'], "env-token")
 
     def test_token_parameter_overrides_env_var(self):
         """Test that explicit token parameter overrides env var."""
         os.environ['SCALEOUT_AUTH_TOKEN'] = "env-token"
         client = Scaleout(host="example.com", token="param-token")
-        
-        self.mock_token_manager.assert_called_once()
-        call_kwargs = self.mock_token_manager.call_args[1]
-        self.assertEqual(call_kwargs['refresh_token'], "param-token")
+
+        self.mock_login.assert_called_once()
+        call_kwargs = self.mock_login.call_args[1]
+        self.assertEqual(call_kwargs['credential'], "param-token")
 
     def test_token_with_scheme_prefix_is_cleaned(self):
-        """Test that token with 'Bearer ' prefix is cleaned."""
+        """Test that token with 'Bearer ' prefix is cleaned before passing to Login."""
         client = Scaleout(host="example.com", token="Bearer some-token-value")
-        
-        self.mock_token_manager.assert_called_once()
-        call_kwargs = self.mock_token_manager.call_args[1]
-        # Token should be cleaned (without Bearer prefix)
-        self.assertEqual(call_kwargs['refresh_token'], "some-token-value")
+
+        self.mock_login.assert_called_once()
+        call_kwargs = self.mock_login.call_args[1]
+        self.assertEqual(call_kwargs['credential'], "some-token-value")
 
     def test_no_token_no_token_manager(self):
-        """Test that TokenManager is not created when no token provided."""
+        """Test that Login is not created when no token provided."""
         client = Scaleout(host="example.com")
-        
-        # TokenManager should not be instantiated without token
-        self.mock_token_manager.assert_not_called()
-        self.assertIsNone(client.token_manager)
+
+        self.mock_login.assert_not_called()
+        self.assertIsNone(client._login)
 
 
 class TestScaleoutHeaders(unittest.TestCase):
@@ -602,18 +598,17 @@ class TestScaleoutHeaders(unittest.TestCase):
         self.assertEqual(headers["X-Test"], "123")
 
     def test_get_headers_with_token_manager(self):
-        """Test _get_headers with TokenManager configured."""
-        with patch('scaleoututil.api.client.TokenManager') as mock_tm_class:
-            mock_tm_instance = MagicMock()
-            mock_tm_instance.get_auth_header.return_value = {"Authorization": "Bearer test-token"}
-            mock_tm_class.return_value = mock_tm_instance
-            
+        """Test _get_headers with Login configured."""
+        with patch('scaleoututil.api.client.Login') as mock_login_class:
+            mock_login_instance = MagicMock()
+            mock_login_instance.get_auth_header.return_value = {"Authorization": "Bearer test-token"}
+            mock_login_class.return_value = mock_login_instance
+
             client = Scaleout(host="example.com", token="test-token")
             headers = client._get_headers()
-            
-            # Should get headers from TokenManager
+
             self.assertEqual(headers["Authorization"], "Bearer test-token")
-            mock_tm_instance.get_auth_header.assert_called_once()
+            mock_login_instance.get_auth_header.assert_called_once()
 
 
 class TestScaleoutTokenManagerFailureFallback(unittest.TestCase):
@@ -630,25 +625,25 @@ class TestScaleoutTokenManagerFailureFallback(unittest.TestCase):
         self.cache_patch.stop()
 
     def test_runtime_error_falls_back_to_no_auth(self):
-        """Test that a RuntimeError from TokenManager results in unauthenticated client."""
-        with patch('scaleoututil.api.client.TokenManager', side_effect=RuntimeError("Token refresh failed")):
+        """Test that a RuntimeError from Login results in unauthenticated client."""
+        with patch('scaleoututil.api.client.Login', side_effect=RuntimeError("Token refresh failed")):
             client = Scaleout(host="example.com", token="some-stale-token")
 
-        self.assertIsNone(client.token_manager)
+        self.assertIsNone(client._login)
 
     def test_request_exception_falls_back_to_no_auth(self):
-        """Test that a network error from TokenManager results in unauthenticated client."""
+        """Test that a network error from Login results in unauthenticated client."""
         with patch(
-            'scaleoututil.api.client.TokenManager',
+            'scaleoututil.api.client.Login',
             side_effect=requests.exceptions.ConnectionError("Connection refused"),
         ):
             client = Scaleout(host="localhost", port=8080, secure=False, token="some-token")
 
-        self.assertIsNone(client.token_manager)
+        self.assertIsNone(client._login)
 
     def test_fallback_get_headers_returns_empty_dict(self):
         """Test that _get_headers returns empty headers (no Authorization) after fallback."""
-        with patch('scaleoututil.api.client.TokenManager', side_effect=RuntimeError("No auth endpoint")):
+        with patch('scaleoututil.api.client.Login', side_effect=RuntimeError("No auth endpoint")):
             client = Scaleout(host="example.com", token="some-token")
 
         headers = client._get_headers()
@@ -657,7 +652,7 @@ class TestScaleoutTokenManagerFailureFallback(unittest.TestCase):
 
     def test_fallback_get_headers_still_merges_additional_headers(self):
         """Test that additional headers are still merged after fallback."""
-        with patch('scaleoututil.api.client.TokenManager', side_effect=RuntimeError("No auth endpoint")):
+        with patch('scaleoututil.api.client.Login', side_effect=RuntimeError("No auth endpoint")):
             client = Scaleout(host="example.com", token="some-token")
 
         headers = client._get_headers(additional_headers={"X-Custom": "value"})
@@ -666,7 +661,7 @@ class TestScaleoutTokenManagerFailureFallback(unittest.TestCase):
 
     def test_fallback_logs_warning(self):
         """Test that a warning is logged when falling back to unauthenticated mode."""
-        with patch('scaleoututil.api.client.TokenManager', side_effect=RuntimeError("Token refresh failed")):
+        with patch('scaleoututil.api.client.Login', side_effect=RuntimeError("Token refresh failed")):
             with patch('scaleoututil.api.client.ScaleoutLogger') as mock_logger:
                 client = Scaleout(host="example.com", token="some-token")
 

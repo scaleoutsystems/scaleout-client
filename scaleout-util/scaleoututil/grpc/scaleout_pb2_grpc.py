@@ -5,7 +5,7 @@ import warnings
 
 from scaleoututil.grpc import scaleout_pb2 as scaleoututil_dot_grpc_dot_scaleout__pb2
 
-GRPC_GENERATED_VERSION = '1.78.0'
+GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -59,9 +59,29 @@ class CombinerClientStub(object):
                 request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.TelemetryMessage.SerializeToString,
                 response_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.FromString,
                 _registered_method=True)
+        self.StreamTelemetryRecord = channel.stream_stream(
+                '/scaleout.CombinerClient/StreamTelemetryRecord',
+                request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.TelemetryRecord.SerializeToString,
+                response_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.RecordAck.FromString,
+                _registered_method=True)
+        self.StreamAttributeRecord = channel.stream_stream(
+                '/scaleout.CombinerClient/StreamAttributeRecord',
+                request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.AttributeRecord.SerializeToString,
+                response_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.RecordAck.FromString,
+                _registered_method=True)
+        self.StreamInferenceResult = channel.stream_stream(
+                '/scaleout.CombinerClient/StreamInferenceResult',
+                request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.InferenceResult.SerializeToString,
+                response_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.RecordAck.FromString,
+                _registered_method=True)
         self.Announce = channel.unary_unary(
                 '/scaleout.CombinerClient/Announce',
                 request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ClientAnnounceRequest.SerializeToString,
+                response_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.FromString,
+                _registered_method=True)
+        self.SendBacklogReport = channel.unary_unary(
+                '/scaleout.CombinerClient/SendBacklogReport',
+                request_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.BacklogReport.SerializeToString,
                 response_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.FromString,
                 _registered_method=True)
         self.PollAndReportAsync = channel.unary_unary(
@@ -119,7 +139,31 @@ class CombinerClientServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def StreamTelemetryRecord(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def StreamAttributeRecord(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def StreamInferenceResult(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Announce(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SendBacklogReport(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -180,9 +224,29 @@ def add_CombinerClientServicer_to_server(servicer, server):
                     request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.TelemetryMessage.FromString,
                     response_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.SerializeToString,
             ),
+            'StreamTelemetryRecord': grpc.stream_stream_rpc_method_handler(
+                    servicer.StreamTelemetryRecord,
+                    request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.TelemetryRecord.FromString,
+                    response_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.RecordAck.SerializeToString,
+            ),
+            'StreamAttributeRecord': grpc.stream_stream_rpc_method_handler(
+                    servicer.StreamAttributeRecord,
+                    request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.AttributeRecord.FromString,
+                    response_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.RecordAck.SerializeToString,
+            ),
+            'StreamInferenceResult': grpc.stream_stream_rpc_method_handler(
+                    servicer.StreamInferenceResult,
+                    request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.InferenceResult.FromString,
+                    response_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.RecordAck.SerializeToString,
+            ),
             'Announce': grpc.unary_unary_rpc_method_handler(
                     servicer.Announce,
                     request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.ClientAnnounceRequest.FromString,
+                    response_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.SerializeToString,
+            ),
+            'SendBacklogReport': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendBacklogReport,
+                    request_deserializer=scaleoututil_dot_grpc_dot_scaleout__pb2.BacklogReport.FromString,
                     response_serializer=scaleoututil_dot_grpc_dot_scaleout__pb2.Response.SerializeToString,
             ),
             'PollAndReportAsync': grpc.unary_unary_rpc_method_handler(
@@ -352,6 +416,87 @@ class CombinerClient(object):
             _registered_method=True)
 
     @staticmethod
+    def StreamTelemetryRecord(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_stream(
+            request_iterator,
+            target,
+            '/scaleout.CombinerClient/StreamTelemetryRecord',
+            scaleoututil_dot_grpc_dot_scaleout__pb2.TelemetryRecord.SerializeToString,
+            scaleoututil_dot_grpc_dot_scaleout__pb2.RecordAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def StreamAttributeRecord(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_stream(
+            request_iterator,
+            target,
+            '/scaleout.CombinerClient/StreamAttributeRecord',
+            scaleoututil_dot_grpc_dot_scaleout__pb2.AttributeRecord.SerializeToString,
+            scaleoututil_dot_grpc_dot_scaleout__pb2.RecordAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def StreamInferenceResult(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_stream(
+            request_iterator,
+            target,
+            '/scaleout.CombinerClient/StreamInferenceResult',
+            scaleoututil_dot_grpc_dot_scaleout__pb2.InferenceResult.SerializeToString,
+            scaleoututil_dot_grpc_dot_scaleout__pb2.RecordAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
     def Announce(request,
             target,
             options=(),
@@ -367,6 +512,33 @@ class CombinerClient(object):
             target,
             '/scaleout.CombinerClient/Announce',
             scaleoututil_dot_grpc_dot_scaleout__pb2.ClientAnnounceRequest.SerializeToString,
+            scaleoututil_dot_grpc_dot_scaleout__pb2.Response.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SendBacklogReport(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/scaleout.CombinerClient/SendBacklogReport',
+            scaleoututil_dot_grpc_dot_scaleout__pb2.BacklogReport.SerializeToString,
             scaleoututil_dot_grpc_dot_scaleout__pb2.Response.FromString,
             options,
             channel_credentials,

@@ -1,17 +1,17 @@
 [project]
 name = "scaleout"
-version = "1.0.6"
+version = "1.1.0"
 description = "A client library for the Scaleout Edge"
 authors = [{ name = "Scaleout Systems AB" }]
 requires-python = ">=3.11, <3.14"
 readme = "README.rst"
 license = "Apache-2.0"
 dependencies = [
-    "numpy>=1.21.6",
     "psutil",
-    "scaleoututil==1.0.6",
-    "click==8.3.1",
+    "scaleoututil==1.1.0",
+    "click==8.5.0",
     "urllib3>=2.6.0",
+    "filelock>=3.32.6",
 ]
 
 [project.urls]
@@ -19,13 +19,10 @@ Homepage = "https://scaleoutsystems.com"
 Documentation = "https://docs.scaleoutsystems.com/en/latest/"
 
 [project.optional-dependencies]
-test = ["pytest~=9.0", "responses>=0.25.0"]
-
-[dependency-groups]
-dev = [
-    "pytest~=9.0",
-    "mypy~=1.0",
-    "responses>=0.25.0",
+test = [
+    "pytest==9.1.1",
+    "pytest-cov>=7.1.0",
+    "responses>=0.26.3",
 ]
 
 [project.scripts]
@@ -36,4 +33,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv.sources]
-scaleoututil= { path = "../scaleout-util", editable = true }
+scaleoututil = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["scaleout", "tests"]
+addopts = "--doctest-modules --cov=scaleout-core --cov-report=term-missing --cov-report=xml --cov-report=html"

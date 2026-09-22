@@ -1,5 +1,5 @@
 """Authentication utilities for Scaleout."""
 
-from scaleoututil.auth.token_manager import TokenManager
+from scaleoututil.auth.login import Login
 
-__all__ = ["TokenManager"]
+__all__ = ["Login"]

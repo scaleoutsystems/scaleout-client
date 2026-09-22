@@ -34,7 +34,6 @@ class TestScaleoutLogger(unittest.TestCase):
     def test_library_usage_defaults_to_warning(self):
         """Test that library usage without configuration defaults to WARNING level."""
         logger = ScaleoutLogger()
-        
         # Check that the logger level is WARNING
         self.assertEqual(logger.logger.level, logging.WARNING)
         
@@ -114,6 +113,47 @@ class TestScaleoutLogger(unittest.TestCase):
         # Invalid level should raise ValueError
         with self.assertRaises(ValueError):
             logger.set_log_level_from_string("INVALID")
+
+    def test_redirect_to_stderr_moves_stdout_handler_and_restores_it(self):
+        """Test that redirect_to_stderr retargets a stdout StreamHandler to stderr, then back."""
+        os.environ["SCALEOUT_LOG_CONSOLE"] = "true"
+        logger = ScaleoutLogger()
+
+        handler = next(h for h in logger.logger.handlers if isinstance(h, logging.StreamHandler))
+        self.assertIs(handler.stream, sys.stdout)
+
+        with logger.redirect_to_stderr():
+            self.assertIs(handler.stream, sys.stderr)
+
+        self.assertIs(handler.stream, sys.stdout)
+
+    def test_redirect_to_stderr_restores_stream_on_exception(self):
+        """Test that redirect_to_stderr restores stdout even if the with-block raises."""
+        os.environ["SCALEOUT_LOG_CONSOLE"] = "true"
+        logger = ScaleoutLogger()
+        handler = next(h for h in logger.logger.handlers if isinstance(h, logging.StreamHandler))
+
+        try:
+            with logger.redirect_to_stderr():
+                self.assertIs(handler.stream, sys.stderr)
+                raise ValueError("boom")
+        except ValueError:
+            pass
+        else:
+            self.fail("expected ValueError to propagate")
+
+        self.assertIs(handler.stream, sys.stdout)
+
+    def test_redirect_to_stderr_ignores_non_stdout_handlers(self):
+        """Test that a handler not writing to stdout (e.g. a stderr handler) is left alone."""
+        logger = ScaleoutLogger()
+        stderr_handler = logging.StreamHandler(sys.stderr)
+        logger.logger.addHandler(stderr_handler)
+
+        with logger.redirect_to_stderr():
+            self.assertIs(stderr_handler.stream, sys.stderr)
+
+        self.assertIs(stderr_handler.stream, sys.stderr)
 
     def test_set_log_stream_to_file(self):
         """Test redirecting logs to a file."""

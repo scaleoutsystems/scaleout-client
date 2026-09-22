@@ -5,3 +5,4 @@ data
 .mnist-keras
 client.yaml
 package
+.scaleout

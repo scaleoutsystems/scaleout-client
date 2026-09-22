@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import sys
@@ -112,6 +113,25 @@ class ScaleoutLogger:
             self.logger.addHandler(stream_handler)
 
         self.logger.setLevel(level)
+
+    @contextlib.contextmanager
+    def redirect_to_stderr(self):
+        """Temporarily redirect any handler currently writing to stdout to stderr.
+
+        For CLI commands whose contract is a single clean value on stdout, safe for
+        `$(...)` capture (e.g. `scaleout client create-enrollment-token`, `scaleout
+        client enroll`) — so log messages a caller opted into via SCALEOUT_LOG_LEVEL/
+        SCALEOUT_LOG_CONSOLE land on stderr instead of corrupting that captured value,
+        rather than being silently dropped.
+        """
+        handlers = [h for h in self.logger.handlers if isinstance(h, logging.StreamHandler) and getattr(h, "stream", None) is sys.stdout]
+        for h in handlers:
+            h.setStream(sys.stderr)
+        try:
+            yield
+        finally:
+            for h in handlers:
+                h.setStream(sys.stdout)
 
     def add_handler(self, handler):
         """Add a custom handler to the logger."""

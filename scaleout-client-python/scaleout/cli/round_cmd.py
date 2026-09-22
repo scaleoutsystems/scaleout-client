@@ -1,7 +1,7 @@
 import click
 
 from scaleout.cli.main import main
-from scaleout.cli.shared import complement_with_context, get_response, process_response
+from scaleout.cli.shared import build_client, call, render_response
 
 
 @main.group(
@@ -23,9 +23,21 @@ def round_cmd(ctx):
 @click.option("-t", "--token", required=False, help="Authentication token")
 @click.option("-o", "--output", "output_format", required=False, default="human", help="Output in JSON format")
 @click.option("--n_max", required=False, help="Number of items to list")
+@click.option("--no-verify-tls", is_flag=True, default=False, help="Do not verify the server TLS certificate (connection is still encrypted).")
 @round_cmd.command("list")
 @click.pass_context
-def list_rounds(ctx, protocol: str, host: str, port: str, token: str = None, session_id: str = None, n_max: int = None, output_format: str = "human"):
+def list_rounds(
+    ctx,
+    *,
+    protocol: str,
+    host: str,
+    port: str,
+    token: str = None,
+    session_id: str = None,
+    n_max: int = None,
+    output_format: str = "human",
+    no_verify_tls: bool = False,
+):
     """List rounds.
 
     **Returns**
@@ -33,18 +45,10 @@ def list_rounds(ctx, protocol: str, host: str, port: str, token: str = None, ses
     - count: number of rounds
     - result: list of rounds
     """
-    base_url, token = complement_with_context(protocol, host, port, token)
-    headers = {}
-
-    if n_max:
-        headers["X-Limit"] = n_max
-
-    query = {}
-    if session_id:
-        query["round_config.session_id"] = session_id
-
-    response = get_response(base_url=base_url, endpoint="rounds/", query=query, token=token, headers=headers)
-    return process_response(response, "rounds", output_format=output_format, base_url=base_url)
+    base_url, client = build_client(protocol, host, port, token, no_verify_tls)
+    filter = {"round_config.session_id": session_id} if session_id else None
+    result = call(client.get_rounds, n_max=n_max, filter=filter)
+    return render_response(result, "rounds", output_format=output_format, base_url=base_url)
 
 
 @click.option("-p", "--protocol", required=False, default=None, help="Communication protocol of controller (api)")
@@ -53,15 +57,16 @@ def list_rounds(ctx, protocol: str, host: str, port: str, token: str = None, ses
 @click.option("-id", "--id", required=True, help="Round ID")
 @click.option("-o", "--output", "output_format", required=False, default="human", help="Output in JSON format")
 @click.option("-t", "--token", required=False, help="Authentication token")
+@click.option("--no-verify-tls", is_flag=True, default=False, help="Do not verify the server TLS certificate (connection is still encrypted).")
 @round_cmd.command("get")
 @click.pass_context
-def get_round(ctx, protocol: str, host: str, port: str, token: str = None, id: str = None, output_format: str = "human"):
+def get_round(ctx, *, protocol: str, host: str, port: str, token: str = None, id: str = None, output_format: str = "human", no_verify_tls: bool = False):
     """Get round.
 
     **Returns**
 
     - result: round with given id
     """
-    base_url, token = complement_with_context(protocol, host, port, token)
-    response = get_response(base_url=base_url, endpoint=f"rounds/{id}", query={}, token=token, headers={})
-    return process_response(response, "round", output_format=output_format, base_url=base_url)
+    base_url, client = build_client(protocol, host, port, token, no_verify_tls)
+    result = call(client.get_round, id)
+    return render_response(result, "round", output_format=output_format, base_url=base_url)

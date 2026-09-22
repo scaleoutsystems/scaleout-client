@@ -28,6 +28,7 @@ class DispatcherClient:
 
     def __init__(
         self,
+        *,
         api_url: str,
         client_obj: ClientOptions,
         combiner_host: Optional[str] = None,
@@ -35,6 +36,7 @@ class DispatcherClient:
         access_token: Optional[str] = None,
         refresh_token: Optional[str] = None,
         package_checksum: Optional[str] = None,
+        package_name: Optional[str] = None,
         helper_type: Optional[str] = None,
         token_refresh_callback: Optional[Callable[[str, str, datetime], None]] = None,
     ) -> None:
@@ -46,6 +48,7 @@ class DispatcherClient:
         self.refresh_token = refresh_token
         self.client_obj = client_obj
         self.package_checksum = package_checksum
+        self.package_name = package_name
         self.helper_type = helper_type
         self.token_refresh_callback = token_refresh_callback
 
@@ -86,7 +89,7 @@ class DispatcherClient:
         if self.client_obj.package == "remote":
             # Get access token from edge_client's TokenManager
             access_token = self.edge_client.get_access_token() if self.edge_client else None
-            result = self._package_runtime.load_remote_compute_package(url=self.fedn_api_url, token=access_token)
+            result = self._package_runtime.load_remote_compute_package(url=self.fedn_api_url, token=access_token, pkg_name=self.package_name)
             if not result:
                 return
         else:
@@ -111,8 +114,13 @@ class DispatcherClient:
         self.edge_client.set_train_callback(self.on_train)
         self.edge_client.set_validate_callback(self.on_validation)
 
+        # Sync client_id from the server-assigned value (authoritative after connect_to_api).
+        # This matters when an enrollment token was used — the server assigns the stable
+        # client_id and embeds it in the JWT; client_obj may still hold a locally-generated UUID.
+        if self.edge_client.client_id:
+            self.client_obj.client_id = self.edge_client.client_id
+
         self.edge_client.set_name(self.client_obj.name)
-        self.edge_client.set_client_id(self.client_obj.client_id)
 
         self.edge_client.run()
 

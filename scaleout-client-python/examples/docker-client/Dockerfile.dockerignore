@@ -1,0 +1,18 @@
+# Scoped to this Dockerfile only (BuildKit convention: <Dockerfile>.dockerignore
+# next to the Dockerfile itself takes precedence over a context-root
+# .dockerignore). The build context is the repo root, but only
+# scaleout-util/ and scaleout-client-python/ are actually needed.
+*
+!scaleout-util
+!scaleout-util/**
+!scaleout-client-python
+!scaleout-client-python/**
+
+# Trim bloat that isn't needed to install the packages themselves.
+scaleout-util/.venv
+scaleout-client-python/.venv
+**/__pycache__
+**/*.egg-info
+scaleout-client-python/examples/**/.venv
+scaleout-client-python/examples/**/data
+scaleout-client-python/graphify-out

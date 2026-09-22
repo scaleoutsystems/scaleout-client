@@ -44,11 +44,13 @@ class TaskReceiver:
 
         self._task_manager_thread = None
         self._task_manager_stop_event = threading.Event()
+        self._skip_polling_tasks = False
 
         # Protects access to current_task and task manager thread
         self._lock = threading.RLock()
 
     def start(self):
+        self._skip_polling_tasks = False
         if self._task_manager_thread is not None:
             if self._task_manager_thread.is_alive():
                 ScaleoutLogger().error("TaskReceiver: Task polling thread is already running.")
@@ -120,7 +122,9 @@ class TaskReceiver:
                 activities = self._get_current_activities()
                 report = scaleout_msg.ClientReport()
                 report.client_id = self.client.client_id
+                report.poll_interval_ms = int(self.polling_interval * 1000)
                 report.reports.extend(activities)
+                report.skip_polling_tasks = self._skip_polling_tasks
                 if len(activities) == 0:
                     ScaleoutLogger().debug("TaskReceiver: Nothing to report, Polling for task")
                 else:
@@ -237,3 +241,16 @@ class TaskReceiver:
     def has_current_tasks(self):
         with self._lock:
             return len(self._current_tasks) > 0
+
+    def has_other_tasks(self):
+        with self._lock:
+            this_task = self.get_current_task()
+            return len([t for t in self._current_tasks if t != this_task]) > 0
+
+    def stop_recieving_new_tasks(self):
+        """Used to let the combiner know that the client only reports already started tasks before shutting down."""
+        self._skip_polling_tasks = True
+
+    def is_task_running(self, task):
+        with self._lock:
+            return task in self._current_tasks

@@ -8,7 +8,9 @@ from functools import wraps
 from io import BytesIO
 from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
 
+from scaleoututil.auth.token_manager import TokenRefreshNetworkError
 from scaleoututil.grpc.clientrequest import ClientRequestType
+from scaleout.client.link_quality import LinkQualityEstimator
 from scaleout.utils.dist import VERSION
 import grpc
 
@@ -36,6 +38,38 @@ GRPC_OPTIONS = [
     ("grpc.keepalive_permit_without_calls", KEEPALIVE_PERMIT_WITHOUT_CALLS),
 ]
 
+# Channel is broken; reconnect before retrying.
+GRPC_RECONNECT_CODES: frozenset = frozenset({grpc.StatusCode.UNAVAILABLE})
+
+# Transient server-side condition; retry without reconnecting.
+GRPC_TRANSIENT_CODES: frozenset = frozenset({grpc.StatusCode.FAILED_PRECONDITION, grpc.StatusCode.CANCELLED})
+
+# Message will never succeed regardless of retry — drop it.
+# UNAUTHENTICATED is permanent for best-effort queued sends (grpc_transport drops them);
+# the live-RPC retry decorator below treats it as a special case and retries when the
+# token manager can refresh (see grpc_retry).
+GRPC_PERMANENT_CODES: frozenset = frozenset(
+    {
+        grpc.StatusCode.INVALID_ARGUMENT,
+        grpc.StatusCode.PERMISSION_DENIED,
+        grpc.StatusCode.UNAUTHENTICATED,
+        grpc.StatusCode.NOT_FOUND,
+        grpc.StatusCode.ALREADY_EXISTS,
+        grpc.StatusCode.OUT_OF_RANGE,
+        grpc.StatusCode.UNIMPLEMENTED,
+    }
+)
+
+
+def grpc_needs_reconnect(e: grpc.RpcError) -> bool:
+    """True when the error indicates the channel itself is broken and must be re-established."""
+    code = e.code() if hasattr(e, "code") else None
+    if code in GRPC_RECONNECT_CODES:
+        return True
+    if code == grpc.StatusCode.UNKNOWN and (e.details() if hasattr(e, "details") else "") == "Stream removed":
+        return True
+    return False
+
 
 def upload_request_generator(model_stream: BytesIO):
     """Generator function for model upload requests for the client
@@ -51,28 +85,6 @@ def upload_request_generator(model_stream: BytesIO):
             yield scaleout_msg.FileChunk(data=b)
         else:
             break
-
-
-class GrpcAuth(grpc.AuthMetadataPlugin):
-    """GRPC authentication plugin."""
-
-    def __init__(self, key_or_callable) -> None:
-        """Initialize GrpcAuth with a key or callable that returns a key."""
-        if callable(key_or_callable):
-            self._key_callable = key_or_callable
-            self._key = None
-        else:
-            self._key = key_or_callable
-            self._key_callable = None
-
-    def __call__(self, context: grpc.AuthMetadataContext, callback: grpc.AuthMetadataPluginCallback) -> None:
-        """Add authorization metadata to the GRPC call."""
-        key = self._key_callable() if self._key_callable else self._key
-        # Only add authorization metadata if we have a valid token
-        if key is not None:
-            callback((("authorization", f"{SCALEOUT_AUTH_SCHEME} {key}"),), None)
-        else:
-            callback((), None)
 
 
 class RetryException(Exception):
@@ -120,8 +132,14 @@ def grpc_retry(
 
                 retry_interval = base_retry_interval * (backoff_factor + random.uniform(-0.5, 0.5))
                 try:
-                    return func(self, *args, **kwargs)
+                    result = func(self, *args, **kwargs)
+                    if self.on_reconnect is not None:
+                        self.on_reconnect()
+                    return result
                 except grpc.RpcError as e:
+                    if self._stop:
+                        ScaleoutLogger().info(f"GRPC ({func.__name__}): Channel closed manually")
+                        raise e
                     status_code = e.code()
                     if status_code == grpc.StatusCode.UNAVAILABLE:
                         ScaleoutLogger().warning(f"GRPC ({func.__name__}): Server unavailable. Retrying in {retry_interval:.2f} seconds.")
@@ -129,8 +147,20 @@ def grpc_retry(
                         time.sleep(retry_interval)
                         self._reconnect_channel()
                         continue
-                    if status_code == grpc.StatusCode.FAILED_PRECONDITION:
-                        ScaleoutLogger().warning(f"GRPC ({func.__name__}): Failed precondition. Retrying in approx {retry_interval:.2f} seconds.")
+                    if status_code == grpc.StatusCode.UNAUTHENTICATED:
+                        # UNAUTHENTICATED is permanent by default (see GRPC_PERMANENT_CODES), but on a
+                        # live RPC the token manager refreshes on the next call via metadata. So retry
+                        # when a refresh token is available; otherwise fail fast — invalid access token
+                        # with no way to refresh (no login, an api key, or no token manager).
+                        if not self.client._login or self.client._login.ctype == "api_key" or self.client._login._manager is None:
+                            ScaleoutLogger().error(f"GRPC ({func.__name__}): {status_code}. Has invalid access token and no refresh token")
+                            raise e
+                        ScaleoutLogger().warning(f"GRPC ({func.__name__}): {status_code}. Retrying in approx {retry_interval:.2f} seconds.")
+                        ScaleoutLogger().debug(f"GRPC ({func.__name__}): Error details: {e.details()}")
+                        time.sleep(retry_interval)
+                        continue
+                    if status_code in GRPC_TRANSIENT_CODES:
+                        ScaleoutLogger().warning(f"GRPC ({func.__name__}): {status_code}. Retrying in approx {retry_interval:.2f} seconds.")
                         ScaleoutLogger().debug(f"GRPC ({func.__name__}): Error details: {e.details()}")
                         time.sleep(retry_interval)
                         continue
@@ -148,13 +178,17 @@ def grpc_retry(
                             continue
                         raise e
                     raise e
+                except TokenRefreshNetworkError as e:
+                    ScaleoutLogger().warning(f"GRPC ({func.__name__}): TokenRefreshNetworkError: {e}. Retrying in approx {retry_interval:.2f} seconds.")
+                    time.sleep(retry_interval)
+                    continue
+                except ValueError as e:
+                    ScaleoutLogger().warning(f"GRPC ({func.__name__}): ValueError: {e}. Retrying in approx {retry_interval:.2f} seconds.")
+                    time.sleep(retry_interval)
+                    self._reconnect_channel()
+                    continue
                 except Exception as e:
                     ScaleoutLogger().warning(f"GRPC ({func.__name__}): An unknown error occurred: {e}.")
-                    if isinstance(e, ValueError):
-                        ScaleoutLogger().warning(f"GRPC ({func.__name__}): Retrying in approx {retry_interval:.2f} seconds.")
-                        time.sleep(retry_interval)
-                        self._reconnect_channel()
-                        continue
                     raise e
 
             ScaleoutLogger().error(f"GRPC ({func.__name__}): Max retries exceeded.")
@@ -177,8 +211,15 @@ class GrpcHandler:
         self.host = host
         self.port = port
 
+        self._stop = False
+
         self._init_channel(host, port)
         self._init_stubs()
+
+        self.link_quality_estimator = LinkQualityEstimator()
+        self.link_quality_estimator.attach_channel(self.channel)
+
+        self.on_reconnect: Optional[Callable[[], None]] = None
 
     @property
     def client_id(self) -> str:
@@ -188,12 +229,10 @@ class GrpcHandler:
     def metadata(self) -> list:
         val = [("client", self.client.client_id), ("client-id", self.client.client_id), ("name", self.client.name)]
 
-        # Add authorization token - get fresh token if TokenManager is available
-        if hasattr(self.client, "token_manager") and self.client.token_manager:
-            current_token = self.client.token_manager.get_access_token()
+        # Add authorization token - get fresh token if available
+        current_token = self.client.get_access_token()
+        if current_token:
             val.append(("authorization", f"{SCALEOUT_AUTH_SCHEME} {current_token}"))
-        elif hasattr(self, "_auth_token") and self._auth_token:
-            val.append(("authorization", f"{SCALEOUT_AUTH_SCHEME} {self._auth_token}"))
 
         return val
 
@@ -208,13 +247,12 @@ class GrpcHandler:
         Secure (TLS) by default; controlled by SCALEOUT_GRPC_SECURE rather than the
         port number. Set SCALEOUT_GRPC_SECURE=false for plaintext combiners.
         """
-        token = self.client.token_manager.get_access_token() if hasattr(self.client, "token_manager") and self.client.token_manager else None
         if SCALEOUT_GRPC_SECURE:
-            self._init_secure_channel(host, port, token)
+            self._init_secure_channel(host, port)
         else:
-            self._init_insecure_channel(host, port, token)
+            self._init_insecure_channel(host, port)
 
-    def _init_secure_channel(self, host: str, port: int, token: str) -> None:
+    def _init_secure_channel(self, host: str, port: int) -> None:
         """Initialize a secure GRPC channel."""
         url = f"{host}:{port}"
         ScaleoutLogger().info(f"Connecting (GRPC) to {url}")
@@ -228,39 +266,19 @@ class GrpcHandler:
                 credentials,
                 options=GRPC_OPTIONS,
             )
-            return
-
-        credentials = grpc.ssl_channel_credentials()
-
-        if hasattr(self.client, "token_manager") and self.client.token_manager:
-            # The token is attached per call via the metadata property, so it must
-            # not also be added to the channel here: doing both sends a duplicate
-            # authorization header, which proxies reject with HTTP 400.
-            self.channel = grpc.secure_channel(
-                f"{host}:{port}",
-                credentials,
-                options=GRPC_OPTIONS,
-            )
-            ScaleoutLogger().info("Using TokenManager; token sent via per-call metadata in secure channel")
-        elif token:
-            # Unreachable today (token is only sourced from token_manager above).
-            auth_creds = grpc.metadata_call_credentials(GrpcAuth(token))
-            self.channel = grpc.secure_channel(
-                f"{host}:{port}",
-                grpc.composite_channel_credentials(credentials, auth_creds),
-                options=GRPC_OPTIONS,
-            )
-            ScaleoutLogger().info("Using static token for authentication in secure channel")
         else:
-            # No authentication available - create channel without auth credentials
+            # No explicit root cert: use system trust store. Auth tokens are attached
+            # per call via the `metadata` property, so they are not added to the channel
+            # here (doing both sends a duplicate authorization header, which proxies
+            # reject with HTTP 400).
+            credentials = grpc.ssl_channel_credentials()
             self.channel = grpc.secure_channel(
                 f"{host}:{port}",
                 credentials,
                 options=GRPC_OPTIONS,
             )
-            ScaleoutLogger().info("No authentication token available - connecting without auth credentials")
 
-    def _init_insecure_channel(self, host: str, port: int, token: Optional[str] = None) -> None:
+    def _init_insecure_channel(self, host: str, port: int) -> None:
         """Initialize an insecure GRPC channel."""
         url = f"{host}:{port}"
         ScaleoutLogger().info(f"Connecting (GRPC) to {url}")
@@ -268,35 +286,25 @@ class GrpcHandler:
             url,
             options=GRPC_OPTIONS,
         )
-        # Store token to add to metadata in each call
-        self._auth_token = token if token else None
-        if self._auth_token:
-            ScaleoutLogger().info("Token will be added to metadata for authentication.")
+
+    def stop(self):
+        if self.channel is not None:
+            self._stop = True
+            self.channel.close()
+
+    def start_link_quality_monitor(self) -> None:
+        """Start the heartbeat-driven link-quality probe."""
+        self.link_quality_estimator.start(self.heartbeat)
+
+    def stop_link_quality_monitor(self, timeout: Optional[float] = None) -> None:
+        """Stop the heartbeat-driven link-quality probe."""
+        self.link_quality_estimator.stop(timeout=timeout)
 
     def heartbeat(self) -> scaleout_msg.Response:
-        """Send a heartbeat to the combiner.
-
-        :return: Response from the combiner.
-        :rtype: scaleout.Response
-        """
-        heartbeat = scaleout_msg.Heartbeat(client_id=self.client_id)
-
-        response = self.combinerStub.SendHeartbeat(heartbeat, metadata=self.metadata)
-
-        return response
-
-    @grpc_retry(max_retries=-1)
-    def send_heartbeats(self, client_name: str, client_id: str, update_frequency: float = 2.0) -> None:
-        """Send heartbeats to the combiner at regular intervals."""
-        send_heartbeat = True
-        while send_heartbeat:
-            response = self.heartbeat()
-            time.sleep(update_frequency)
-            if isinstance(response, scaleout_msg.Response):
-                pass
-            else:
-                ScaleoutLogger().error("Heartbeat failed.")
-                send_heartbeat = False
+        """Send a single heartbeat to the combiner. Raises on failure."""
+        hb = scaleout_msg.Heartbeat(client_id=self.client_id)
+        hb.heartbeat_interval_ms = self.link_quality_estimator.interval_ms
+        return self.combinerStub.SendHeartbeat(hb, metadata=self.metadata)
 
     @grpc_retry(max_retries=-1)
     def listen_to_task_stream(self, client_id: str, callback: Callable[[Any], None]) -> None:
@@ -314,7 +322,6 @@ class GrpcHandler:
     def PollAndReportAsync(self, report: scaleout_msg.ClientReport) -> scaleout_msg.CombinerDirective:
         return self.combinerStub.PollAndReportAsync(report, metadata=self.metadata)
 
-    @grpc_retry(max_retries=5)
     def send_status(
         self,
         msg: str,
@@ -329,8 +336,6 @@ class GrpcHandler:
         :type log_level: scaleout.LogLevel.INFO, scaleout.LogLevel.WARNING, scaleout.LogLevel.ERROR
         :param type: The type of the message.
         :type type: str
-        :param request: The request message.
-        :type request: scaleout.Request
         """
         status = scaleout_msg.Status()
         status.timestamp.GetCurrentTime()
@@ -341,24 +346,25 @@ class GrpcHandler:
         if type is not None:
             status.type = type
 
+        self._send_status(status)
+
+    def _send_status(self, status: scaleout_msg.Status) -> None:
+        """Send a prebuilt Status proto to the combiner."""
         ScaleoutLogger().info("Sending status message to combiner.")
         _ = self.combinerStub.SendStatus(status, metadata=self.metadata)
 
-    @grpc_retry(max_retries=5)
     def send_model_metric(self, metric: scaleout_msg.ModelMetric) -> bool:
         """Send a model metric to the combiner."""
         ScaleoutLogger().info("Sending model metric to combiner")
         _ = self.combinerStub.SendModelMetric(metric, metadata=self.metadata)
         return True
 
-    @grpc_retry(max_retries=5)
     def send_attributes(self, attribute: scaleout_msg.AttributeMessage) -> bool:
         """Send a attribute message to the combiner."""
         ScaleoutLogger().debug("Sending attributes to combiner.")
         _ = self.combinerStub.SendAttributeMessage(attribute, metadata=self.metadata)
         return True
 
-    @grpc_retry(max_retries=5)
     def send_telemetry(self, telemetry: scaleout_msg.TelemetryMessage) -> bool:
         """Send a telemetry message to the combiner."""
         ScaleoutLogger().debug("Sending telemetry to combiner.")
@@ -366,7 +372,7 @@ class GrpcHandler:
         return True
 
     @grpc_retry(max_retries=-1)
-    def connect(self) -> scaleout_msg.Response:
+    def send_connect(self) -> scaleout_msg.Response:
         """Connect the client to the combiner."""
         request = scaleout_msg.ClientAnnounceRequest()
         request.client_id = self.client_id
@@ -375,7 +381,11 @@ class GrpcHandler:
         response = self.combinerStub.Announce(request, metadata=self.metadata)
         return response
 
-    def disconnect(self) -> scaleout_msg.Response:
+    def send_backlog_report(self, report: scaleout_msg.BacklogReport) -> scaleout_msg.Response:
+        """Send a backlog pressure snapshot to the combiner."""
+        return self.combinerStub.SendBacklogReport(report, metadata=self.metadata)
+
+    def send_disconnect(self) -> scaleout_msg.Response:
         """Disconnect the client from the combiner."""
         request = scaleout_msg.ClientAnnounceRequest()
         request.client_id = self.client_id
@@ -469,7 +479,7 @@ class GrpcHandler:
             metric.metrics.add(key=key, value=value)
         return metric
 
-    def send_model_update(self, model_id: str, model_update_id: str, correlation_id: str, round_id: str, session_id: str, meta: dict) -> bool:
+    def send_model_update(self, *, model_id: str, model_update_id: str, correlation_id: str, round_id: str, session_id: str, meta: dict) -> bool:
         """Send a model update to the combiner."""
         update = scaleout_msg.ModelUpdate()
         update.client_id = self.client_id
@@ -482,7 +492,6 @@ class GrpcHandler:
         update.meta = json.dumps(meta)
         return self._send_model_update(update)
 
-    @grpc_retry(max_retries=-1)
     def _send_model_update(self, update: scaleout_msg.ModelUpdate) -> bool:
         """Send a model update to the combiner."""
         ScaleoutLogger().info("Sending model update to combiner.")
@@ -507,7 +516,6 @@ class GrpcHandler:
 
         return self._send_model_validation(validation)
 
-    @grpc_retry(max_retries=-1)
     def _send_model_validation(self, validation: scaleout_msg.ModelValidation) -> bool:
         """Send a model validation to the combiner."""
         ScaleoutLogger().info("Sending model validation to combiner.")
@@ -522,8 +530,10 @@ class GrpcHandler:
     def _reconnect_channel(self) -> None:
         """Reconnect to the combiner."""
         self._disconnect_channel()
+        self.link_quality_estimator.detach()
         self._init_channel(self.host, self.port)
         self._init_stubs()
+        self.link_quality_estimator.attach_channel(self.channel)
         ScaleoutLogger().debug("GRPC channel reconnected.")
 
 
