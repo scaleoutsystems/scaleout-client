@@ -361,6 +361,28 @@ class TestReprAndContextManager:
             assert os.path.exists(zip_path)
         assert not os.path.exists(zip_path)
 
+    def test_close_deletes_owned_zip_immediately(self, helper, params):
+        m = ScaleoutModel.from_training_model(params, helper)
+        zip_path = m._zip_path
+        assert os.path.exists(zip_path)
+        m.close()
+        assert not os.path.exists(zip_path)
+
+    def test_close_is_idempotent(self, helper, params):
+        m = ScaleoutModel.from_training_model(params, helper)
+        m.close()
+        m.close()
+
+    def test_close_does_not_delete_non_owned_file(self, helper, params):
+        m = ScaleoutModel.from_training_model(params, helper)
+        with tempfile.NamedTemporaryFile(suffix=".scm", delete=False) as f:
+            path = f.name
+        m.save_to_file(path)
+        assert m._zip_is_owned is False
+        m.close()
+        assert os.path.exists(path)
+        os.unlink(path)
+
 
 # ---------------------------------------------------------------------------
 # ScaleoutModelBuilder — builder pattern
