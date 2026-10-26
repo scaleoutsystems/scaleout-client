@@ -14,7 +14,7 @@ dependencies = [
     "requests>=2.31",
     "urllib3>=2.6.0",
     "pyjwt>=2.12.0",
-    "virtualenv==20.36.1",
+    "virtualenv==21.14.13",
     "cryptography>=46.0.5",
     "PyYAML~=6.0",
 ]
