@@ -1,0 +1,23 @@
+services:
+  client:
+    build:
+      # Repo root: the Dockerfile needs scaleout-util/ and
+      # scaleout-client-python/ as build-context siblings to install from
+      # source. Run `docker compose` from this directory as usual --
+      # compose resolves this relative to this file, not your shell's cwd.
+      context: ../../..
+      dockerfile: scaleout-client-python/examples/docker-client/Dockerfile
+    image: scaleout-client-docker-example:latest
+    env_file:
+      - .env
+    environment:
+      SCALEOUT_DATA_DIR: /app/data
+    volumes:
+      - ./client:/app/client:ro
+      - ./data:/app/data
+      - scaleout_state:/app/.scaleout
+      - scaleout_tokens:/root/.scaleout
+
+volumes:
+  scaleout_state:
+  scaleout_tokens:

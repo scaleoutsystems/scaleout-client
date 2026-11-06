@@ -6,11 +6,10 @@ import sys
 import tarfile
 
 import click
+import requests
 
 from scaleout.cli.main import main
-from scaleout.cli.shared import complement_with_context, get_api_url, get_response, get_scheme_token, process_response
-from scaleout.cli.upload_util import perform_chunked_upload
-import requests
+from scaleout.cli.shared import build_client, call, render_response
 
 
 def create_tar_with_ignore(path: str, output_path: str) -> None:
@@ -91,9 +90,12 @@ def create_cmd(_: click.Context, path: str, name: str, output: str) -> None:
 @click.option("-t", "--token", required=False, help="Authentication token")
 @click.option("-o", "--output", "output_format", required=False, default="human", help="Output in JSON format")
 @click.option("--n_max", required=False, help="Number of items to list")
+@click.option("--no-verify-tls", is_flag=True, default=False, help="Do not verify the server TLS certificate (connection is still encrypted).")
 @package_cmd.command("list")
 @click.pass_context
-def list_packages(_: click.Context, protocol: str, host: str, port: str, token: str = None, n_max: int = None, output_format: str = "human") -> None:
+def list_packages(
+    _: click.Context, *, protocol: str, host: str, port: str, token: str = None, n_max: int = None, output_format: str = "human", no_verify_tls: bool = False
+) -> None:
     """Return a list of packages.
 
     **Returns**
@@ -101,14 +103,9 @@ def list_packages(_: click.Context, protocol: str, host: str, port: str, token: 
     - count: number of packages
     - result: list of packages
     """
-    base_url, token = complement_with_context(protocol, host, port, token)
-    headers = {}
-
-    if n_max:
-        headers["X-Limit"] = n_max
-
-    response = get_response(base_url=base_url, endpoint="packages/", query={}, token=token, headers=headers)
-    return process_response(response, "packages", output_format=output_format, base_url=base_url)
+    base_url, client = build_client(protocol, host, port, token, no_verify_tls)
+    result = call(client.get_packages, n_max=n_max)
+    return render_response(result, "packages", output_format=output_format, base_url=base_url)
 
 
 @click.option("-p", "--protocol", required=False, default=None, help="Communication protocol of controller (api)")
@@ -117,18 +114,21 @@ def list_packages(_: click.Context, protocol: str, host: str, port: str, token: 
 @click.option("-t", "--token", required=False, help="Authentication token")
 @click.option("-o", "--output", "output_format", required=False, default="human", help="Output in JSON format")
 @click.option("-id", "--id", required=True, help="Package ID")
+@click.option("--no-verify-tls", is_flag=True, default=False, help="Do not verify the server TLS certificate (connection is still encrypted).")
 @package_cmd.command("get")
 @click.pass_context
-def get_package(_: click.Context, protocol: str, host: str, port: str, token: str = None, id: str = None, output_format: str = "human") -> None:
+def get_package(
+    _: click.Context, *, protocol: str, host: str, port: str, token: str = None, id: str = None, output_format: str = "human", no_verify_tls: bool = False
+) -> None:
     """Return a package with given id.
 
     **Returns**
 
     - result: package with given id
     """
-    base_url, token = complement_with_context(protocol, host, port, token)
-    response = get_response(base_url=base_url, endpoint=f"packages/{id}", query={}, token=token, headers={})
-    return process_response(response, "package", output_format=output_format, base_url=base_url)
+    base_url, client = build_client(protocol, host, port, token, no_verify_tls)
+    result = call(client.get_package, id)
+    return render_response(result, "package", output_format=output_format, base_url=base_url)
 
 
 @package_cmd.command("set-active")
@@ -140,9 +140,22 @@ def get_package(_: click.Context, protocol: str, host: str, port: str, token: st
 @click.option("-d", "--description", required=False, help="Description of the package")
 @click.option("-n", "--name", required=True, help="Name of the package")
 @click.option("--helper", required=False, default="numpyhelper", help="Helper to use for the package")
+@click.option("--restart-clients", is_flag=True, default=False, help="Push the new package to connected clients and restart them.")
+@click.option("--no-verify-tls", is_flag=True, default=False, help="Do not verify the server TLS certificate (connection is still encrypted).")
 @click.pass_context
 def set_active(
-    _: click.Context, protocol: str, host: str, port: str, token: str = None, file: str = None, description: str = None, name: str = None, helper: str = None
+    _: click.Context,
+    *,
+    protocol: str,
+    host: str,
+    port: str,
+    token: str = None,
+    file: str = None,
+    description: str = None,
+    name: str = None,
+    helper: str = None,
+    restart_clients: bool = False,
+    no_verify_tls: bool = False,
 ) -> None:
     """Set a package as active.
 
@@ -150,21 +163,13 @@ def set_active(
 
     - result: package with given id
     """
-    base_url, token = complement_with_context(protocol, host, port, token)
-    headers = {}
-    _token = get_scheme_token(token=token)
-    if _token:
-        headers = {"Authorization": _token}
-
-    url = get_api_url(base_url, "packages/")
-    file_token = perform_chunked_upload(base_url, token, file, headers)
-    response = requests.post(
-        url,
-        data={"helper": helper, "name": name, "description": description, "file_token": file_token, "file_name": os.path.basename(file)},
-        headers=headers,
-        verify=False,
-    )
-    if 200 <= response.status_code <= 204:
-        click.secho("Package set as active successfully.", fg="green")
-    else:
-        click.secho(f"Failed to set package as active. Status code: {response.status_code}, Response: {response.text}", fg="red")
+    base_url, client = build_client(protocol, host, port, token, no_verify_tls)
+    try:
+        result = client.set_active_package(path=file, helper=helper, name=name, description=description or "", restart_clients=restart_clients)
+    except (FileNotFoundError, RuntimeError) as e:
+        click.secho(f"Upload failed: {e}", fg="red")
+        sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        click.secho(f"Could not connect to the controller API at {base_url}: {e}", fg="red")
+        sys.exit(1)
+    return render_response(result, "package", base_url=base_url)

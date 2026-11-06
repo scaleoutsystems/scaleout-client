@@ -1,11 +1,19 @@
 import io
+import json
 import os
 import tempfile
 import zipfile
 import pytest
 import numpy as np
 
-from scaleoututil.utils.model import ScaleoutModel, ScaleoutModelBuilder
+from scaleoututil.utils.model import (
+    _FORMAT_VERSION,
+    _METADATA_ENTRY,
+    _VERSION_KEY,
+    IncompatibleModelFormatError,
+    ScaleoutModel,
+    ScaleoutModelBuilder,
+)
 from scaleoututil.helpers.plugins.numpyhelper import Helper
 
 
@@ -660,3 +668,144 @@ class TestSigning:
         assert model.verify_signature(key_a.public_key(), sig_a["signature"]) is True
         assert model.verify_signature(key_b.public_key(), sig_b["signature"]) is True
         assert model.verify_signature(Ed25519PrivateKey.generate().public_key(), sig_a["signature"]) is False
+
+
+# ---------------------------------------------------------------------------
+# User-attached files
+# ---------------------------------------------------------------------------
+
+class TestAttachedFiles:
+    def test_list_files_empty_by_default(self, model):
+        assert model.list_files() == []
+
+    def test_has_file_false_by_default(self, model):
+        assert not model.has_file("config.json")
+
+    def test_set_file_and_get_file_roundtrip(self, params, helper):
+        payload = b"hello world"
+        m = ScaleoutModelBuilder.from_training_model(params, helper).set_file("config.json", payload).build()
+        assert m.get_file("config.json") == payload
+
+    def test_set_file_stream_and_open_file_roundtrip(self, params, helper):
+        payload = b"\x00\x01\x02binary\xff"
+        m = (
+            ScaleoutModelBuilder.from_training_model(params, helper)
+            .set_file_stream("data.bin", io.BytesIO(payload))
+            .build()
+        )
+        with m.open_file("data.bin") as f:
+            assert f.read() == payload
+
+    def test_list_files_returns_all_names(self, params, helper):
+        m = (
+            ScaleoutModelBuilder.from_training_model(params, helper)
+            .set_file("a.txt", b"aaa")
+            .set_file("b.txt", b"bbb")
+            .build()
+        )
+        assert sorted(m.list_files()) == ["a.txt", "b.txt"]
+
+    def test_has_file_true_after_set(self, params, helper):
+        m = ScaleoutModelBuilder.from_training_model(params, helper).set_file("x.bin", b"x").build()
+        assert m.has_file("x.bin")
+        assert not m.has_file("other.bin")
+
+    def test_files_preserved_via_to_builder(self, params, helper):
+        payload = b"preserved"
+        m = ScaleoutModelBuilder.from_training_model(params, helper).set_file("keep.bin", payload).build()
+        m2 = m.to_builder().set_metadata("tag", "v2").build()
+        assert m2.get_file("keep.bin") == payload
+
+    def test_files_preserved_on_save_and_reload(self, params, helper):
+        payload = b"roundtrip"
+        m = ScaleoutModelBuilder.from_training_model(params, helper).set_file("report.txt", payload).build()
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as f:
+            path = f.name
+        try:
+            m.save_to_file(path)
+            reloaded = ScaleoutModelBuilder.from_file(path).build()
+            assert reloaded.get_file("report.txt") == payload
+        finally:
+            os.unlink(path)
+
+    def test_set_file_overrides_existing_via_to_builder(self, params, helper):
+        m = ScaleoutModelBuilder.from_training_model(params, helper).set_file("cfg.json", b"old").build()
+        m2 = m.to_builder().set_file("cfg.json", b"new").build()
+        assert m2.get_file("cfg.json") == b"new"
+
+    def test_set_file_raises_on_invalid_name_with_slash(self, params, helper):
+        with pytest.raises(ValueError):
+            ScaleoutModelBuilder.from_training_model(params, helper).set_file("sub/file.txt", b"x")
+
+    def test_set_file_raises_on_dotdot(self, params, helper):
+        with pytest.raises(ValueError):
+            ScaleoutModelBuilder.from_training_model(params, helper).set_file("../escape.txt", b"x")
+
+    def test_set_file_raises_if_not_bytes(self, params, helper):
+        with pytest.raises(TypeError):
+            ScaleoutModelBuilder.from_training_model(params, helper).set_file("f.txt", "not-bytes")
+
+
+# ---------------------------------------------------------------------------
+# Container format version guard
+# ---------------------------------------------------------------------------
+
+def _rewrite_metadata_version(zip_path, new_version):
+    """Forge the stored format version in an existing model ZIP."""
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        names = zf.namelist()
+        meta = json.loads(zf.read(_METADATA_ENTRY).decode("utf-8"))
+        others = {n: zf.read(n) for n in names if n != _METADATA_ENTRY}
+    meta[_VERSION_KEY] = new_version
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(_METADATA_ENTRY, json.dumps(meta))
+        for n, data in others.items():
+            zf.writestr(n, data)
+
+
+class TestFormatVersion:
+    def test_new_model_reports_current_version(self, model):
+        assert model.format_version == _FORMAT_VERSION
+
+    def test_version_survives_save_and_reload(self, params, helper):
+        m = ScaleoutModelBuilder.from_training_model(params, helper).build()
+        with tempfile.NamedTemporaryFile(suffix=".scm", delete=False) as f:
+            path = f.name
+        try:
+            m.save_to_file(path)
+            reloaded = ScaleoutModelBuilder.from_file(path).build()
+            assert reloaded.format_version == _FORMAT_VERSION
+        finally:
+            os.unlink(path)
+
+    def test_newer_version_refused_on_load(self, params, helper):
+        m = ScaleoutModelBuilder.from_training_model(params, helper).build()
+        with tempfile.NamedTemporaryFile(suffix=".scm", delete=False) as f:
+            path = f.name
+        try:
+            m.save_to_file(path)
+            _rewrite_metadata_version(path, _FORMAT_VERSION + 1)
+            with pytest.raises(IncompatibleModelFormatError):
+                ScaleoutModelBuilder.from_file(path).build()
+        finally:
+            os.unlink(path)
+
+    def test_same_version_with_attached_files_loads(self, params, helper):
+        # Additive files/* entries must not trip the version guard.
+        m = ScaleoutModelBuilder.from_training_model(params, helper).set_file("cfg.json", b"x").build()
+        with tempfile.NamedTemporaryFile(suffix=".scm", delete=False) as f:
+            path = f.name
+        try:
+            m.save_to_file(path)
+            reloaded = ScaleoutModelBuilder.from_file(path).build()
+            assert reloaded.format_version == _FORMAT_VERSION
+            assert reloaded.get_file("cfg.json") == b"x"
+        finally:
+            os.unlink(path)
+
+    def test_legacy_model_reports_current_version(self, helper, params):
+        legacy = ScaleoutModel.from_training_model(params, helper)
+        with legacy.get_training_model_stream() as s:
+            raw_bytes = s.read()
+        loaded = ScaleoutModel.from_stream(io.BytesIO(raw_bytes))
+        assert loaded.format_version == _FORMAT_VERSION

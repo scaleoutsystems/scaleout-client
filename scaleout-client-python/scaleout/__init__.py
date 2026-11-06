@@ -6,6 +6,7 @@ sends requests to the combiner to receive model updates and send model updates.
 
 from scaleout.client.edge_client import EdgeClient
 from scaleoututil.api.client import Scaleout
+from scaleoututil.queue import ClassOrder, DecayPolicy, PriorityClass
 from scaleoututil.utils.model import ScaleoutModel
 
-__all__ = ["Scaleout", "EdgeClient", "ScaleoutModel"]
+__all__ = ["Scaleout", "EdgeClient", "ScaleoutModel", "PriorityClass", "ClassOrder", "DecayPolicy"]

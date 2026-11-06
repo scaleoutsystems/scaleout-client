@@ -1,5 +1,5 @@
 __pycache__
-.mnist-pytorch
+.mnist-pytorch*
 data
 *.tgz
 *.tar.gz

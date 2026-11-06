@@ -3,7 +3,7 @@
 import os
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import yaml
 
@@ -16,7 +16,6 @@ from scaleout.cli.shared import (
     switch_context,
     remove_context,
     complement_with_context,
-    HOME_DIR,
     CONTEXT_FOLDER,
 )
 
@@ -44,21 +43,21 @@ class TestContextManagement(unittest.TestCase):
         mock_home_dir.__add__ = lambda self, other: os.path.join(self.temp_dir, other.lstrip("/"))
 
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://localhost:8092", "test-token", "test-context")
+            set_context("http://localhost:8092", "test-token")
 
         self.assertTrue(os.path.exists(self.context_dir))
 
     @patch("scaleout.cli.shared.HOME_DIR")
-    def test_set_context_with_name(self, mock_home_dir):
-        """Test set_context saves context with provided name."""
+    def test_set_context_derives_name_from_host(self, mock_home_dir):
+        """Test set_context derives name from host netloc."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://localhost:8092", "test-token", "my-context")
+            set_context("http://localhost:8092", "test-token")
 
             with open(self.contexts_file, "r") as f:
                 contexts = yaml.safe_load(f)
 
             self.assertEqual(len(contexts), 1)
-            self.assertEqual(contexts[0]["name"], "my-context")
+            self.assertEqual(contexts[0]["name"], "localhost:8092")
             self.assertEqual(contexts[0]["host"], "http://localhost:8092")
             self.assertEqual(contexts[0]["token"], "test-token")
 
@@ -77,38 +76,38 @@ class TestContextManagement(unittest.TestCase):
     def test_set_context_appends_to_existing_contexts(self, mock_home_dir):
         """Test set_context appends new context to existing contexts."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "context1")
-            set_context("http://host2.com", "token2", "context2")
+            set_context("http://host1.com", "token1")
+            set_context("http://host2.com", "token2")
 
             with open(self.contexts_file, "r") as f:
                 contexts = yaml.safe_load(f)
 
             self.assertEqual(len(contexts), 2)
-            self.assertEqual(contexts[0]["name"], "context1")
-            self.assertEqual(contexts[1]["name"], "context2")
+            self.assertEqual(contexts[0]["name"], "host1.com")
+            self.assertEqual(contexts[1]["name"], "host2.com")
 
     @patch("scaleout.cli.shared.HOME_DIR")
-    def test_set_context_allows_duplicate_names_different_hosts(self, mock_home_dir):
-        """Test that multiple contexts can share the same name if they have different hosts."""
+    def test_set_context_different_hosts_create_separate_contexts(self, mock_home_dir):
+        """Test that different hosts create separate contexts."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "production")
-            set_context("http://host2.com", "token2", "production")
+            set_context("http://host1.com", "token1")
+            set_context("http://host2.com", "token2")
 
             with open(self.contexts_file, "r") as f:
                 contexts = yaml.safe_load(f)
 
             self.assertEqual(len(contexts), 2)
-            self.assertEqual(contexts[0]["name"], "production")
-            self.assertEqual(contexts[1]["name"], "production")
+            self.assertEqual(contexts[0]["name"], "host1.com")
+            self.assertEqual(contexts[1]["name"], "host2.com")
             self.assertEqual(contexts[0]["host"], "http://host1.com")
             self.assertEqual(contexts[1]["host"], "http://host2.com")
 
     @patch("scaleout.cli.shared.HOME_DIR")
     def test_set_context_updates_identical_host_and_name(self, mock_home_dir):
-        """Test that setting a context with identical host and name updates instead of appending."""
+        """Test that setting a context with identical host updates instead of appending."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "production")
-            set_context("http://host1.com", "token2", "production")
+            set_context("http://host1.com", "token1")
+            set_context("http://host1.com", "token2")
 
             with open(self.contexts_file, "r") as f:
                 contexts = yaml.safe_load(f)
@@ -209,19 +208,19 @@ class TestContextManagement(unittest.TestCase):
     def test_get_context_by_index_returns_correct_context(self, mock_home_dir):
         """Test get_context_by_index returns the context at specified index."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "ctx1")
-            set_context("http://host2.com", "token2", "ctx2")
+            set_context("http://host1.com", "token1")
+            set_context("http://host2.com", "token2")
 
             context = get_context_by_index(1)
 
-            self.assertEqual(context["name"], "ctx2")
+            self.assertEqual(context["name"], "host2.com")
             self.assertEqual(context["host"], "http://host2.com")
 
     @patch("scaleout.cli.shared.HOME_DIR")
     def test_get_context_by_index_returns_none_for_invalid_index(self, mock_home_dir):
         """Test get_context_by_index returns None for invalid indices."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "ctx1")
+            set_context("http://host1.com", "token1")
 
             self.assertIsNone(get_context_by_index(-1))
             self.assertIsNone(get_context_by_index(5))
@@ -230,8 +229,8 @@ class TestContextManagement(unittest.TestCase):
     def test_switch_context_updates_active_index(self, mock_home_dir):
         """Test switch_context updates the active index."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "ctx1")
-            set_context("http://host2.com", "token2", "ctx2")
+            set_context("http://host1.com", "token1")
+            set_context("http://host2.com", "token2")
 
             result = switch_context(0)
 
@@ -242,7 +241,7 @@ class TestContextManagement(unittest.TestCase):
     def test_switch_context_returns_false_for_invalid_index(self, mock_home_dir):
         """Test switch_context returns False for invalid index."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "ctx1")
+            set_context("http://host1.com", "token1")
 
             result = switch_context(10)
 
@@ -252,25 +251,25 @@ class TestContextManagement(unittest.TestCase):
     def test_remove_context_removes_by_index(self, mock_home_dir):
         """Test remove_context removes the context at specified index."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "ctx1")
-            set_context("http://host2.com", "token2", "ctx2")
-            set_context("http://host3.com", "token3", "ctx3")
+            set_context("http://host1.com", "token1")
+            set_context("http://host2.com", "token2")
+            set_context("http://host3.com", "token3")
 
             result = remove_context(1)
 
             self.assertTrue(result)
             contexts = get_all_contexts()
             self.assertEqual(len(contexts), 2)
-            self.assertEqual(contexts[0]["name"], "ctx1")
-            self.assertEqual(contexts[1]["name"], "ctx3")
+            self.assertEqual(contexts[0]["name"], "host1.com")
+            self.assertEqual(contexts[1]["name"], "host3.com")
 
     @patch("scaleout.cli.shared.HOME_DIR")
     def test_remove_context_switches_to_first_when_removing_active(self, mock_home_dir):
         """Test remove_context switches to index 0 when removing active context."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "ctx1")
-            set_context("http://host2.com", "token2", "ctx2")
-            set_context("http://host3.com", "token3", "ctx3")
+            set_context("http://host1.com", "token1")
+            set_context("http://host2.com", "token2")
+            set_context("http://host3.com", "token3")
             # Last set_context sets active to index 2
 
             result = remove_context(2)
@@ -283,9 +282,9 @@ class TestContextManagement(unittest.TestCase):
     def test_remove_context_adjusts_active_index_when_removing_before_active(self, mock_home_dir):
         """Test remove_context adjusts active index when removing a context before it."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "ctx1")
-            set_context("http://host2.com", "token2", "ctx2")
-            set_context("http://host3.com", "token3", "ctx3")
+            set_context("http://host1.com", "token1")
+            set_context("http://host2.com", "token2")
+            set_context("http://host3.com", "token3")
             # Active is at index 2
 
             # Remove index 0, active should shift from 2 to 1
@@ -298,7 +297,7 @@ class TestContextManagement(unittest.TestCase):
     def test_remove_context_clears_active_when_removing_last_context(self, mock_home_dir):
         """Test remove_context clears active file when removing the last context."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "ctx1")
+            set_context("http://host1.com", "token1")
 
             result = remove_context(0)
 
@@ -310,7 +309,7 @@ class TestContextManagement(unittest.TestCase):
     def test_remove_context_returns_false_for_invalid_index(self, mock_home_dir):
         """Test remove_context returns False for invalid index."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "ctx1")
+            set_context("http://host1.com", "token1")
 
             result = remove_context(5)
 
@@ -321,8 +320,8 @@ class TestContextManagement(unittest.TestCase):
     def test_complement_with_context_uses_active_context(self, mock_home_dir):
         """Test complement_with_context retrieves host from active context."""
         with patch("scaleout.cli.shared.HOME_DIR", self.temp_dir):
-            set_context("http://host1.com", "token1", "ctx1")
-            set_context("http://host2.com", "token2", "ctx2")
+            set_context("http://host1.com", "token1")
+            set_context("http://host2.com", "token2")
             switch_context(0)
 
             host, token = complement_with_context(None, None, None, None)

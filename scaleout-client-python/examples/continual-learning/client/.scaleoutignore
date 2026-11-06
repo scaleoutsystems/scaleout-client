@@ -1,0 +1,8 @@
+# Keep the compute package small: the CORe50 download and the materialized
+# per-domain tensors live under client/data (~4.6 GB) and are recreated on
+# each client by data.prepare_data() at startup. Without this file
+# `scaleout package create` tars the whole dataset into package.tgz.
+data
+__pycache__
+*.pyc
+.prepare.lock

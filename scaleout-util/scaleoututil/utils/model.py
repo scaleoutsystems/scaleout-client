@@ -18,12 +18,37 @@ from scaleoututil.helpers.plugins.numpyhelper import Helper
 CHUNK_SIZE = 1 * 1024 * 1024  # 1 MB chunk size for reading/writing files
 
 _ZIP_MAGIC = b"PK"
+# On-disk container format version, stamped into metadata.json at build time.
+# Bump this ONLY for a backward-INCOMPATIBLE change to the container format.
+# Additive changes (new metadata keys, new ZIP entries such as files/*) are
+# forward/backward compatible and MUST NOT bump this — older code reads them fine.
+# A model whose stored version exceeds this value was produced by newer, breaking
+# code and is refused on load (see _check_format_version).
 _FORMAT_VERSION = 2
 
 
 _TRAINING_MODEL_ENTRY = "training_model.bin"
 _METADATA_ENTRY = "metadata.json"
 _INFERENCE_MODEL_ENTRY = "inference_model.bin"
+_FILES_PREFIX = "files/"
+_VERSION_KEY = "_version"  # underscore-prefixed: reserved, must not collide with user-supplied metadata keys
+
+
+class IncompatibleModelFormatError(Exception):
+    """Raised when a model's container format is newer than this build supports."""
+
+
+def _check_format_version(version: int) -> None:
+    """Refuse to load a model produced by newer, backward-incompatible code."""
+    if version > _FORMAT_VERSION:
+        raise IncompatibleModelFormatError(
+            f"Model container format version {version} requires a newer version of scaleout; this build supports up to format version {_FORMAT_VERSION}."
+        )
+
+
+def _validate_file_name(name: str) -> None:
+    if not name or "/" in name or "\\" in name or ".." in name:
+        raise ValueError(f"Invalid file name {name!r}: must be a plain filename with no path separators.")
 
 
 def _read_metadata_from_zip(zip_path: str) -> dict:
@@ -31,9 +56,23 @@ def _read_metadata_from_zip(zip_path: str) -> dict:
     with zipfile.ZipFile(zip_path, "r") as zf:
         if _METADATA_ENTRY in zf.namelist():
             meta = json.loads(zf.read(_METADATA_ENTRY).decode("utf-8"))
-            meta.pop("version", None)
+            meta.pop(_VERSION_KEY, None)
             return meta
     return {}
+
+
+def _read_format_version_from_zip(zip_path: str) -> int:
+    """Return the container format version stored in metadata.json.
+
+    Defaults to the current _FORMAT_VERSION when no version key is present:
+    every format up to and including the current one is backward compatible,
+    so an unstamped model is treated as current, not as an older format.
+    """
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        if _METADATA_ENTRY in zf.namelist():
+            meta = json.loads(zf.read(_METADATA_ENTRY).decode("utf-8"))
+            return int(meta.get(_VERSION_KEY, _FORMAT_VERSION))
+    return _FORMAT_VERSION
 
 
 class ScaleoutModel:
@@ -70,12 +109,21 @@ class ScaleoutModel:
         with model.get_inference_model_stream() as s:    # stream inference_model.bin directly from ZIP
             data = s.read()
 
+    User-attached files::
+
+        model.list_files()              # list of attached file names
+        model.has_file("config.json")   # bool
+        with model.open_file("config.json") as f:
+            data = f.read()
+        data = model.get_file("config.json")  # convenience, returns bytes
+
     On-disk format
     --------------
     Files are ZIP archives (stdlib zipfile, DEFLATED) containing:
-        metadata.json    – eagerly loaded on open
-        training_model.bin        – serialized weights
-        inference_model.bin   – optional full model representation
+        metadata.json        – eagerly loaded on open
+        training_model.bin   – serialized weights
+        inference_model.bin  – optional full model representation
+        files/{name}         – zero or more user-attached files
 
     Legacy raw-binary streams (no ZIP header, e.g. bare NPZ) are detected automatically
     and loaded with empty metadata for backward compatibility.
@@ -108,6 +156,7 @@ class ScaleoutModel:
         obj._metadata = {}
         obj._helper = None
         obj._checksum = None
+        obj._format_version = None  # container format version; set on load
         obj._legacy_source = False  # True if loaded from legacy raw binary (no ZIP)
         return obj
 
@@ -165,6 +214,11 @@ class ScaleoutModel:
     def legacy_source(self) -> bool:
         """True if this model was loaded from a legacy raw binary (no ZIP)."""
         return self._legacy_source
+
+    @property
+    def format_version(self) -> int:
+        """The on-disk container format version this model was written with."""
+        return self._format_version
 
     # ------------------------------------------------------------------
     # Metadata management
@@ -250,6 +304,47 @@ class ScaleoutModel:
         """
         with zipfile.ZipFile(self._zip_path, "r") as zf, zf.open(_INFERENCE_MODEL_ENTRY) as f:
             yield f
+
+    # ------------------------------------------------------------------
+    # User-attached files
+    # ------------------------------------------------------------------
+
+    def list_files(self) -> list:
+        """Returns names of user-attached files (without the files/ prefix)."""
+        if self._zip_path is None:
+            return []
+        try:
+            with zipfile.ZipFile(self._zip_path, "r") as zf:
+                return [name[len(_FILES_PREFIX) :] for name in zf.namelist() if name.startswith(_FILES_PREFIX) and len(name) > len(_FILES_PREFIX)]
+        except Exception:
+            return []
+
+    def has_file(self, name: str) -> bool:
+        """True if the model contains a user-attached file with this name."""
+        if self._zip_path is None:
+            return False
+        try:
+            with zipfile.ZipFile(self._zip_path, "r") as zf:
+                return (_FILES_PREFIX + name) in zf.namelist()
+        except Exception:
+            return False
+
+    @contextmanager
+    def open_file(self, name: str):
+        """Context manager yielding a read stream for the named attached file.
+
+        Usage::
+
+            with model.open_file("config.json") as f:
+                data = f.read()
+        """
+        with zipfile.ZipFile(self._zip_path, "r") as zf, zf.open(_FILES_PREFIX + name) as f:
+            yield f
+
+    def get_file(self, name: str) -> bytes:
+        """Read and return all bytes of an attached file."""
+        with self.open_file(name) as f:
+            return f.read()
 
     # ------------------------------------------------------------------
     # Checksum
@@ -463,6 +558,7 @@ class ScaleoutModelBuilder:
             ScaleoutModelBuilder.from_training_model(params, helper)
             .set_metadata("session_id", "s1")
             .set_inference_model(onnx_bytes, "onnx")
+            .set_file("config.json", config_bytes)
             .build()
         )
 
@@ -502,6 +598,8 @@ class ScaleoutModelBuilder:
         self._inference_model_stream = None  # SpooledTemporaryFile or None
         self._inference_model_stream_fmt: Optional[str] = None
         self._model_id_explicitly_set: bool = False
+        # User-attached files
+        self._extra_files: dict = {}  # name -> SpooledTemporaryFile
         # Legacy source tracking (for backward compatibility with non-ZIP raw binary inputs)
         self._legacy_source = False  # True if loaded from legacy raw binary (no ZIP)
 
@@ -656,6 +754,36 @@ class ScaleoutModelBuilder:
         self._inference_model_stream_fmt = fmt
         return self
 
+    def set_file(self, name: str, data: bytes) -> "ScaleoutModelBuilder":
+        """Attach a named file from bytes. Returns ``self`` for chaining.
+
+        Args:
+            name: Plain filename with no path separators (e.g. ``'config.json'``).
+            data: Raw bytes to store.
+        """
+        if not isinstance(data, bytes):
+            raise TypeError("data must be bytes.")
+        _validate_file_name(name)
+        buf = tempfile.SpooledTemporaryFile(max_size=10 * 1024 * 1024)
+        buf.write(data)
+        buf.seek(0)
+        self._extra_files[name] = buf
+        return self
+
+    def set_file_stream(self, name: str, stream) -> "ScaleoutModelBuilder":
+        """Attach a named file from a stream. Returns ``self`` for chaining.
+
+        Args:
+            name: Plain filename with no path separators (e.g. ``'config.json'``).
+            stream: Readable binary stream.
+        """
+        _validate_file_name(name)
+        buf = tempfile.SpooledTemporaryFile(max_size=10 * 1024 * 1024)
+        shutil.copyfileobj(stream, buf)
+        buf.seek(0)
+        self._extra_files[name] = buf
+        return self
+
     # ------------------------------------------------------------------
     # Build
     # ------------------------------------------------------------------
@@ -706,7 +834,7 @@ class ScaleoutModelBuilder:
         if self._inference_model_stream is not None:
             metadata["inference_model_format"] = self._inference_model_stream_fmt
 
-        needs_rebuild = training_model_stream is not None or self._inference_model_stream is not None or bool(self._extra_metadata)
+        needs_rebuild = training_model_stream is not None or self._inference_model_stream is not None or bool(self._extra_metadata) or bool(self._extra_files)
 
         # Assign model_id: auto-generate when rebuilding; keep existing only when reusing the file as-is.
         # set_model_id() overrides auto-generation on the load path; ignored for from_training_model.
@@ -724,6 +852,7 @@ class ScaleoutModelBuilder:
             training_model_stream=training_model_stream,
             source_zip_path=self._loaded_zip_path,
             inference_model_stream=self._inference_model_stream,
+            extra_files=self._extra_files or None,
         )
         if self._loaded_zip_owned and self._loaded_zip_path:
             try:
@@ -738,12 +867,13 @@ class ScaleoutModelBuilder:
         training_model_stream: Optional[BinaryIO] = None,
         source_zip_path: Optional[str] = None,
         inference_model_stream: Optional[BinaryIO] = None,
+        extra_files: Optional[dict] = None,
     ) -> str:
         """Build a new owned temp ZIP from components. Returns the temp file path."""
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
         with zipfile.ZipFile(tmp, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
             meta = dict(metadata)
-            meta["version"] = _FORMAT_VERSION
+            meta[_VERSION_KEY] = _FORMAT_VERSION
             zf.writestr(_METADATA_ENTRY, json.dumps(meta))
 
             if training_model_stream is not None:
@@ -763,6 +893,23 @@ class ScaleoutModelBuilder:
                     if _INFERENCE_MODEL_ENTRY in src_zf.namelist():
                         with src_zf.open(_INFERENCE_MODEL_ENTRY) as src_f, zf.open(_INFERENCE_MODEL_ENTRY, "w", force_zip64=True) as dst_f:
                             shutil.copyfileobj(src_f, dst_f)
+
+            # Write new/updated user-attached files
+            written_file_entries: set = set()
+            if extra_files:
+                for fname, fstream in extra_files.items():
+                    entry = _FILES_PREFIX + fname
+                    written_file_entries.add(entry)
+                    with zf.open(entry, "w", force_zip64=True) as dst_f:
+                        shutil.copyfileobj(fstream, dst_f)
+
+            # Carry forward existing user-attached files not being overridden
+            if source_zip_path and os.path.exists(source_zip_path):
+                with zipfile.ZipFile(source_zip_path, "r") as src_zf:
+                    for entry in src_zf.namelist():
+                        if entry.startswith(_FILES_PREFIX) and entry not in written_file_entries:
+                            with src_zf.open(entry) as src_f, zf.open(entry, "w", force_zip64=True) as dst_f:
+                                shutil.copyfileobj(src_f, dst_f)
         tmp.close()
         return tmp.name
 
@@ -779,4 +926,6 @@ class ScaleoutModelBuilder:
         model._legacy_source = self._legacy_source
         model._metadata = metadata
         model._helper = self._helper  # already resolved in _prepare_zip
+        model._format_version = _read_format_version_from_zip(zip_path)
+        _check_format_version(model._format_version)
         return model

@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import os
+import shlex
 import subprocess
 import sys
 
@@ -49,7 +50,14 @@ class ShellCommandException(Exception):
 def _join_commands(*commands):
     entry_point = ["bash", "-c"] if _IS_UNIX else ["cmd", "/c"]
     sep = " && " if _IS_UNIX else " & "
-    return [*entry_point, sep.join(map(str, commands))]
+
+    def _to_str(cmd):
+        if isinstance(cmd, (list, tuple)):
+            parts = [str(p) for p in cmd]
+            return shlex.join(parts) if _IS_UNIX else subprocess.list2cmdline(parts)
+        return str(cmd)
+
+    return [*entry_point, sep.join(_to_str(c) for c in commands)]
 
 
 def _exec_cmd(

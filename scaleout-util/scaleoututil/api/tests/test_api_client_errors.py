@@ -13,8 +13,8 @@ class TestScaleoutHTTPErrors(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
@@ -80,8 +80,8 @@ class TestScaleoutNetworkErrors(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
@@ -133,8 +133,8 @@ class TestScaleoutInvalidResponses(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
@@ -188,8 +188,8 @@ class TestScaleoutFileOperations(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
@@ -269,11 +269,11 @@ class TestScaleoutFileOperations(unittest.TestCase):
     @patch('requests.put')
     def test_set_active_model_npz(self, mock_put, mock_post):
         """Test setting active model with .npz file."""
-        mock_post_response = MagicMock()
+        mock_post_response = MagicMock(status_code=200)
         mock_post_response.json.return_value = {"success": True}
         mock_post.return_value = mock_post_response
 
-        mock_put_response = MagicMock()
+        mock_put_response = MagicMock(status_code=200)
         mock_put.return_value = mock_put_response
 
         with patch.object(self.client, '_perform_chunked_upload', return_value='fake-token') as mock_upload:
@@ -286,11 +286,11 @@ class TestScaleoutFileOperations(unittest.TestCase):
     @patch('requests.put')
     def test_set_active_model_bin(self, mock_put, mock_post):
         """Test setting active model with .bin file."""
-        mock_post_response = MagicMock()
+        mock_post_response = MagicMock(status_code=200)
         mock_post_response.json.return_value = {"success": True}
         mock_post.return_value = mock_post_response
 
-        mock_put_response = MagicMock()
+        mock_put_response = MagicMock(status_code=200)
         mock_put.return_value = mock_put_response
 
         with patch.object(self.client, '_perform_chunked_upload', return_value='fake-token'):
@@ -301,10 +301,31 @@ class TestScaleoutFileOperations(unittest.TestCase):
     @patch('requests.put')
     def test_set_active_model_file_not_found(self, mock_put):
         """Test setting active model with non-existent file."""
-        mock_put.return_value = MagicMock()
+        mock_put.return_value = MagicMock(status_code=200)
 
         with self.assertRaises(FileNotFoundError):
             self.client.set_active_model("/nonexistent/model.npz")
+
+    @patch('requests.put')
+    def test_set_active_model_raises_on_helper_error(self, mock_put):
+        """A non-success status on the helper PUT raises RuntimeError so the CLI reports failure and exits non-zero."""
+        mock_put.return_value = MagicMock(status_code=400, json=lambda: {"message": "bad helper"})
+
+        with self.assertRaises(RuntimeError) as cm:
+            self.client.set_active_model("/tmp/model.npz")
+        self.assertIn("bad helper", str(cm.exception))
+
+    @patch('requests.post')
+    @patch('requests.put')
+    def test_set_active_model_raises_on_upload_error(self, mock_put, mock_post):
+        """A non-success status on the model POST raises RuntimeError carrying the server message."""
+        mock_put.return_value = MagicMock(status_code=200)
+        mock_post.return_value = MagicMock(status_code=500, json=lambda: {"message": "upload failed"})
+
+        with patch.object(self.client, '_perform_chunked_upload', return_value='fake-token'):
+            with self.assertRaises(RuntimeError) as cm:
+                self.client.set_active_model("/tmp/model.npz")
+        self.assertEqual(str(cm.exception), "upload failed")
 
 
 class TestScaleoutSessionMethods(unittest.TestCase):
@@ -312,8 +333,8 @@ class TestScaleoutSessionMethods(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
@@ -343,16 +364,22 @@ class TestScaleoutSessionMethods(unittest.TestCase):
     @patch('requests.get')
     def test_start_session_with_model_id(self, mock_get, mock_post):
         """Test starting session with explicit model_id."""
+        # helper defaults to None, so start_session resolves the active helper via helpers/active.
+        mock_get_response = MagicMock()
+        mock_get_response.status_code = 200
+        mock_get_response.json.return_value = "numpyhelper"
+        mock_get.return_value = mock_get_response
+
         mock_post_response1 = MagicMock()
         mock_post_response1.status_code = 201
         mock_post_response1.json.return_value = {"session_id": "session-123"}
-        
+
         mock_post_response2 = MagicMock()
         mock_post_response2.status_code = 200
         mock_post_response2.json.return_value = {"success": True, "session_id": "session-123"}
-        
+
         mock_post.side_effect = [mock_post_response1, mock_post_response2]
-        
+
         result = self.client.start_session(name="test-session", model_id="model-123")
         
         self.assertIn("session_id", result)
@@ -421,8 +448,8 @@ class TestScaleoutFilteringAndPagination(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False
@@ -499,8 +526,8 @@ class TestScaleoutValidation(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.token_patch = patch('scaleoututil.api.client.TokenManager')
-        self.mock_token_manager = self.token_patch.start()
+        self.token_patch = patch('scaleoututil.api.client.Login')
+        self.mock_login = self.token_patch.start()
         self.cache_patch = patch('scaleoututil.api.client.TokenCache')
         self.mock_cache = self.cache_patch.start()
         self.mock_cache.return_value.exists.return_value = False

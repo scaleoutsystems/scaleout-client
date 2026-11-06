@@ -82,11 +82,42 @@ message TelemetryMessage {
   string client_id = 1;
   repeated TelemetryElem telemetries = 2;
   google.protobuf.Timestamp timestamp = 3;
+  string record_id = 4;
 }
 
 message TelemetryElem {
   string key = 1;
   float value = 2;
+}
+
+message TelemetryRecord {
+  string telemetry_id = 1;
+  string client_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string key = 4;
+  string payload = 5;
+}
+
+message AttributeRecord {
+  string attribute_id = 1;
+  string client_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string key = 4;
+  string payload = 5;
+}
+
+message RecordAck {
+  repeated string record_ids = 1;
+}
+
+message InferenceResult {
+  string inference_result_id          = 1;
+  string node_id                      = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string key                          = 4;
+  string payload                      = 5;
+  string inference_id                 = 6;
+  string model_id                     = 7;
 }
 
 // Task related
@@ -102,6 +133,10 @@ message TaskRequest {
   string type = 11;
   string status = 12;
   string client_id = 1;
+  // The round's ordinal within its session, 1-indexed. 0 means the task is not
+  // tied to a numbered round (validation, custom commands) or the combiner is
+  // older than this field. round_id is a UUID and carries no ordering.
+  int32 round_number = 13;
 }
 
 message ActivityReport {
@@ -110,12 +145,15 @@ message ActivityReport {
   string status = 3;
   bool done = 4;
   string response = 5; // json
+  optional string command_type = 6; // set only until the server acks the self-registration
+  optional string parameters = 7; // json, same lifetime as command_type
+  google.protobuf.Timestamp started_at = 8; // client's own wall-clock task-start time
+  google.protobuf.Timestamp completed_at = 9; // client's own wall-clock task-end time
 }
 
 message Heartbeat {
   string client_id = 1;
-  float memory_utilisation = 2;
-  float cpu_utilisation = 3;
+  optional uint32 heartbeat_interval_ms = 4;
 }
 
 message ClientAvailableMessage {
@@ -130,9 +168,18 @@ message ClientAnnounceRequest {
   string parameters = 3;
 }
 
+message BacklogReport {
+  string client_id = 1;
+  uint32 backlog_total = 2;
+  uint32 backlog_dropped_total = 3;
+  optional float backlog_oldest_age_ms = 4;
+}
+
 message ClientReport {
   string client_id = 1;
   repeated ActivityReport reports = 2;
+  optional uint32 poll_interval_ms = 3;
+  bool skip_polling_tasks = 4;
 }
 
 message CombinerDirective {
@@ -146,8 +193,12 @@ service CombinerClient {
     rpc SendModelMetric(ModelMetric) returns (Response);
     rpc SendAttributeMessage(AttributeMessage) returns (Response);
     rpc SendTelemetryMessage(TelemetryMessage) returns (Response);
+    rpc StreamTelemetryRecord(stream TelemetryRecord) returns (stream RecordAck);
+    rpc StreamAttributeRecord(stream AttributeRecord) returns (stream RecordAck);
+    rpc StreamInferenceResult(stream InferenceResult) returns (stream RecordAck);
 
     rpc Announce(ClientAnnounceRequest) returns (Response);
+    rpc SendBacklogReport(BacklogReport) returns (Response);
 
     rpc PollAndReportAsync(ClientReport) returns (CombinerDirective);
 

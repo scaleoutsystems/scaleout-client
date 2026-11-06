@@ -16,9 +16,11 @@ limitations under the License.
 """
 
 import os
+from pathlib import Path
 import shutil
 from contextlib import contextmanager
 
+from scaleoututil.config import SCALEOUT_VENV_DIR
 from scaleoututil.logging import ScaleoutLogger
 from scaleoututil.utils.environment import PythonEnv
 from scaleoututil.utils.process import _exec_cmd, _join_commands
@@ -90,11 +92,14 @@ class Dispatcher:
                 raise Exception("Compute package specified python_env file %s, but no such file was found." % python_env_yaml_path)
             python_env = _get_python_env(python_env_yaml_path)
 
-        python_env.set_base_path(self.project_dir)
+        python_env.set_base_path(Path(self.project_dir) / SCALEOUT_VENV_DIR)
         if not python_env.path.exists():
             python_env.create_virtualenv(capture_output=capture_output)
-        else:
+        elif python_env.verify_installed_env():
             ScaleoutLogger().info("Using existing virtualenv at %s", python_env.path)
+        else:
+            ScaleoutLogger().error("Found environment but it is not active. Please clear cache.")
+            raise RuntimeError("Found environment but it is not active. Please clear cache.")
 
         self.activate_cmd = python_env.get_activate_cmd()
         self.python_env_path = python_env.path

@@ -5,3 +5,4 @@ data
 .huggingface
 client.yaml
 package
+.scaleout
