@@ -1,11 +1,12 @@
 """Client module for handling client operations in the Scaleout network."""
 
 import os
-import sys
 import time
 from datetime import datetime
 from typing import Optional, Tuple, Callable
 from scaleout.client.connect import ClientOptions, get_url
+from scaleout.client.grpc_edge_client_runtime import GrpcEdgeClientRuntime
+from scaleout.client.package_runtime import restart_with_venv_and_package
 from scaleoututil.logging import ScaleoutLogger
 from scaleout.client.edge_client import ConnectToApiResult, EdgeClient, GrpcConnectionOptions
 from scaleout.client.importer_package_runtime import ImporterPackageRuntime, get_compute_package_dir_path
@@ -16,6 +17,7 @@ class ImporterClient:
 
     def __init__(
         self,
+        *,
         api_url: str,
         client_obj: ClientOptions,
         combiner_host: Optional[str] = None,
@@ -23,6 +25,7 @@ class ImporterClient:
         access_token: Optional[str] = None,
         refresh_token: Optional[str] = None,
         package_checksum: Optional[str] = None,
+        package_name: Optional[str] = None,
         helper_type: Optional[str] = None,
         startup_path: Optional[str] = None,
         managed_env: Optional[bool] = False,
@@ -36,6 +39,7 @@ class ImporterClient:
         self.refresh_token = refresh_token
         self.client_obj = client_obj
         self.package_checksum = package_checksum
+        self.package_name = package_name
         self.helper_type = helper_type
 
         package_path, archive_path = get_compute_package_dir_path()
@@ -44,7 +48,7 @@ class ImporterClient:
         self.managed_env = managed_env
         self.fedn_api_url = get_url(self.api_url)
 
-        self.edge_client: EdgeClient = EdgeClient()
+        self.edge_client: EdgeClient = None
 
         self.helper = None
         self.startup_path = startup_path
@@ -71,6 +75,9 @@ class ImporterClient:
 
     def start(self) -> None:
         """Start the client."""
+        client_runtime = GrpcEdgeClientRuntime()
+        self.edge_client = EdgeClient(runtime=client_runtime)
+
         if self.combiner_host and self.combiner_port:
             combiner_config = GrpcConnectionOptions(host=self.combiner_host, port=self.combiner_port)
         else:
@@ -80,7 +87,7 @@ class ImporterClient:
         if self.client_obj.package == "remote":
             # Get access token from edge_client's TokenManager
             access_token = self.edge_client.get_access_token() if self.edge_client else None
-            success = self.package_runtime.load_remote_compute_package(url=self.fedn_api_url, token=access_token)
+            success = self.package_runtime.load_remote_compute_package(url=self.fedn_api_url, token=access_token, pkg_name=self.package_name)
             if not success:
                 return
         else:
@@ -93,13 +100,13 @@ class ImporterClient:
         if self.managed_env:
             ScaleoutLogger().info("Using managed environment")
             try:
-                self.package_runtime.update_runtime_env()
+                self.package_runtime.create_runtime_env()
             except Exception as e:
                 ScaleoutLogger().error(f"Failed to manage runtime environment: {e}")
                 ScaleoutLogger().error("Client exiting...")
                 return
             if self.package_runtime.requires_restart:
-                self.__restart_client()
+                restart_with_venv_and_package(self.package_runtime.python_env.path)  # This command will not return if successfull
             else:
                 ScaleoutLogger().info("Managed environment is active and verified.")
         else:
@@ -117,34 +124,5 @@ class ImporterClient:
 
         self.edge_client.run()
 
-    def __restart_client(self) -> None:
-        """Restart the client."""
-        # This method could be replace by letting a process manager handle the restart, i.e. a watchdog or supervisor.
-        # The watchdog would monitor the client process and restart it if it exits unexpectedly
-        # and start the client with the correct environment activated.
-        ScaleoutLogger().info("Restarting client with managed environment.")
-
-        # TODO: Maybe we need to close open tcp connections and/or open file handles before restarting
-
-        # Sanitize args to avoid shell injection and ensure safe usage
-        # Use shlex.split to safely parse the command line arguments
-        args_list = sys.argv
-        if "client" in args_list and "start" in args_list:
-            # Find the index of "client" and "start"
-            try:
-                client_idx = args_list.index("client")
-                start_idx = args_list.index("start", client_idx)
-                # Everything after "start" are the arguments to pass
-                if client_idx != start_idx - 1:
-                    ScaleoutLogger().warning("Unexpected arguments between 'client' and 'start'. These will be ignored.")
-                args_after_start_list = args_list[start_idx + 1 :]
-            except ValueError:
-                raise RuntimeError("Invalid command line arguments for restarting the client.")
-        else:
-            ScaleoutLogger().error("The command does not contain 'client' and 'start'. Cannot restart safely.")
-            raise RuntimeError("Invalid command line arguments for restarting the client.")
-        ScaleoutLogger().info(f"Current command line arguments: {' '.join(args_list)}")
-        ScaleoutLogger().info("Restarting in 2 seconds...")
-        time.sleep(2)
-        os.execv(sys.executable, [sys.executable, "-m", "scaleout", "client", "start"] + args_after_start_list)  # noqa: S606
-        # This line will never be reached, as os.execv replaces the current process with a new one.
+    def load_compute_package(self, url, token, pkg_name, validate, clear_untracked):
+        pass

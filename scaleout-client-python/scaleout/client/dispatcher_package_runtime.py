@@ -23,35 +23,26 @@ class DispatcherPackageRuntime(PackageRuntime):
         super().__init__(package_path, archive_path)
 
         self.dispatcher: Optional[Dispatcher] = None
+        self._initialized = False
 
-    def run_startup(self):
+    def init_runtime(self):
         if self.config is None:
-            ScaleoutLogger().error("Package runtime is not initialized.")
+            ScaleoutLogger().error("Package is not loaded")
             return False
 
-        result = self.set_dispatcher()
-        if not result:
-            return False
-
-        return self.init_dispatcher()
-
-    def set_dispatcher(self) -> bool:
-        """Dispatch the compute package.
-
-        :param run_path: Path to dispatch the compute package.
-        :type run_path: str
-        :return: Dispatcher object or None if an error occurred.
-        :rtype: Optional[Dispatcher]
-        """
         try:
             self.dispatcher = Dispatcher(self.config, self._target_path)
         except Exception as e:
             ScaleoutLogger().error(f"Error setting dispatcher: {e}")
             return False
+        self._initialized = True
         return True
 
-    def init_dispatcher(self) -> bool:
-        """Get or set the environment."""
+    def run_startup(self):
+        if not self._initialized:
+            if not self.init_runtime():
+                return False
+
         try:
             ScaleoutLogger().info("Initiating Dispatcher with entrypoint set to: startup")
             activate_cmd = self.dispatcher.get_or_create_python_env()

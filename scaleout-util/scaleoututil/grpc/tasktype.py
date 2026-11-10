@@ -8,6 +8,8 @@ class TaskType(Enum):
     StageModel = "Scaleout_StageModel"
     Inference = "Scaleout_Inference"
 
+    RestartClient = "Scaleout_RestartClient"
+
     @staticmethod
     def is_valid_task(task: str) -> bool:
         """Validate that the task is a valid task.

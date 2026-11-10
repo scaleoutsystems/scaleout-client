@@ -4,8 +4,7 @@ import click
 import requests
 
 from scaleout.cli.main import main
-from scaleout.cli.shared import complement_with_context, get_api_url, get_response, get_scheme_token, process_response
-from scaleout.cli.upload_util import perform_chunked_upload
+from scaleout.cli.shared import build_client, call, render_response
 
 
 @main.group(
@@ -27,22 +26,25 @@ def model_cmd(ctx):
 @click.option("-o", "--output", "output_format", required=False, default="human", help="Output in JSON format")
 @click.option("-s", "--session_id", required=False, help="models in session with given session id")
 @click.option("--n_max", required=False, help="Number of items to list")
+@click.option("--no-verify-tls", is_flag=True, default=False, help="Do not verify the server TLS certificate (connection is still encrypted).")
 @model_cmd.command("list")
 @click.pass_context
-def list_models(ctx, protocol: str, host: str, port: str, token: str = None, session_id: str = None, n_max: int = None, output_format: str = "human"):
+def list_models(
+    ctx,
+    *,
+    protocol: str,
+    host: str,
+    port: str,
+    token: str = None,
+    session_id: str = None,
+    n_max: int = None,
+    output_format: str = "human",
+    no_verify_tls: bool = False,
+):
     """List models."""
-    base_url, token = complement_with_context(protocol, host, port, token)
-    headers = {}
-
-    if n_max:
-        headers["X-Limit"] = n_max
-
-    query = {}
-    if session_id:
-        query["session_id"] = session_id
-
-    response = get_response(base_url=base_url, endpoint="models/", query=query, token=token, headers=headers)
-    return process_response(response, "models", output_format=output_format, base_url=base_url)
+    base_url, client = build_client(protocol, host, port, token, no_verify_tls)
+    result = call(client.get_models, session_id=session_id, n_max=n_max)
+    return render_response(result, "models", output_format=output_format, base_url=base_url)
 
 
 @click.option("-p", "--protocol", required=False, default=None, help="Communication protocol of controller (api)")
@@ -51,13 +53,14 @@ def list_models(ctx, protocol: str, host: str, port: str, token: str = None, ses
 @click.option("-t", "--token", required=False, help="Authentication token")
 @click.option("-o", "--output", "output_format", required=False, default="human", help="Output in JSON format")
 @click.option("-id", "--id", required=True, help="Model ID")
+@click.option("--no-verify-tls", is_flag=True, default=False, help="Do not verify the server TLS certificate (connection is still encrypted).")
 @model_cmd.command("get")
 @click.pass_context
-def get_model(ctx, protocol: str, host: str, port: str, token: str = None, id: str = None, output_format: str = "human"):
+def get_model(ctx, *, protocol: str, host: str, port: str, token: str = None, id: str = None, output_format: str = "human", no_verify_tls: bool = False):
     """Get model by id."""
-    base_url, token = complement_with_context(protocol, host, port, token)
-    response = get_response(base_url=base_url, endpoint=f"models/{id}", query={}, token=token, headers={})
-    return process_response(response, "model", output_format=output_format, base_url=base_url)
+    base_url, client = build_client(protocol, host, port, token, no_verify_tls)
+    result = call(client.get_model, id)
+    return render_response(result, "model", output_format=output_format, base_url=base_url)
 
 
 @click.option("-p", "--protocol", required=False, default=None, help="Communication protocol of controller (api)")
@@ -65,50 +68,18 @@ def get_model(ctx, protocol: str, host: str, port: str, token: str = None, id: s
 @click.option("-P", "--port", required=False, default=None, help="Port of controller (api)")
 @click.option("-t", "--token", required=False, help="Authentication token")
 @click.option("-f", "--file", required=True, help="Path to the model file")
+@click.option("--no-verify-tls", is_flag=True, default=False, help="Do not verify the server TLS certificate (connection is still encrypted).")
 @model_cmd.command("set-active")
 @click.pass_context
-def set_active_model(ctx, protocol: str, host: str, port: str, token: str, file: str):
+def set_active_model(ctx, *, protocol: str, host: str, port: str, token: str, file: str, no_verify_tls: bool = False):
     """Set the initial model and upload to model repository."""
-    base_url, token = complement_with_context(protocol, host, port, token)
-    headers = {}
-    _token = get_scheme_token(token=token)
-    if _token:
-        headers = {"Authorization": _token}
-
-    if file.endswith(".npz"):
-        helper = "numpyhelper"
-    elif file.endswith(".bin"):
-        helper = "binaryhelper"
-    else:
-        click.secho("Unsupported file type. Only .npz and .bin files are supported.", fg="red")
-        return
-
+    base_url, client = build_client(protocol, host, port, token, no_verify_tls)
     try:
-        # Set the active helper
-        url = get_api_url(base_url, "helpers/active")
-        response_helper = requests.put(url, json={"helper": helper}, headers=headers, verify=False)
-        response_helper.raise_for_status()
-        if response_helper.status_code >= 200 and response_helper.status_code <= 204:
-            click.secho(f"Active helper set to: {helper}", fg="green")
-        else:
-            click.secho(f"Failed to set active helper: {response_helper.text}", fg="red")
-            sys.exit(1)
-
-        # Upload the model file
-        url = get_api_url(base_url, "models/")
-        file_token = perform_chunked_upload(base_url, token, file, headers)
-        click.secho(f"Uploading model entry with helper: {helper} to {url}", fg="yellow")
-        response_model = requests.post(url, data={"helper": helper, "file_token": file_token}, headers=headers, verify=False)
-        response_model.raise_for_status()
-
-        if response_model.status_code >= 200 and response_model.status_code <= 204:
-            click.secho("Model uploaded successfully.", fg="green")
-        else:
-            click.secho(f"Failed to upload model: {response_model.text}", fg="red")
-            sys.exit(1)
-    except requests.exceptions.ConnectionError as e:
-        click.secho(f"Could not connect to the controller at {host}:{port}. Is it running? Error: {e}", fg="red")
+        result = client.set_active_model(file)
+    except (FileNotFoundError, RuntimeError) as e:
+        click.secho(f"Upload failed: {e}", fg="red")
         sys.exit(1)
     except requests.exceptions.RequestException as e:
-        click.secho(f"Failed to set active model: {e}", fg="red")
+        click.secho(f"Could not connect to the controller API at {base_url}: {e}", fg="red")
         sys.exit(1)
+    return render_response(result, "model", base_url=base_url)

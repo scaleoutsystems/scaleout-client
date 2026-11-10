@@ -1,0 +1,11 @@
+# The CORe50 download and the per-domain tensors it is preprocessed into.
+# Scoped to client/ on purpose: a bare "data" would also swallow
+# assets/data/run.json, the committed metrics export the figures are built from.
+client/data
+*.npz
+*.tgz
+*.tar.gz
+.continual-learning
+client*.yaml
+package
+.scaleout

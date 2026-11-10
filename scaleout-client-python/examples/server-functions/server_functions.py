@@ -19,10 +19,7 @@ class ServerFunctions(ServerFunctionsBase):
         """Select clients that are currently charging.
         If no attributes exist (empty response) or service error, default to selecting all.
         """
-        # chose every client for predictions
-        if round_type == RoundType.PREDICTION:
-            return client_ids
-        # for train and evaluation only chose clients which are in "charging" state
+        # only choose clients which are in "charging" state
         try:
             attrs_map = api_client.get_current_attributes(client_ids)
         except Exception as e:

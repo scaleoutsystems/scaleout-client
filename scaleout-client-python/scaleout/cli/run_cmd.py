@@ -77,7 +77,13 @@ def build_cmd(ctx, path, keep_venv, dispatch, output):
     else:
         runtime = ImporterPackageRuntime(None, None)
         runtime.load_local_compute_package(path)
-        runtime.run_entrypoint("build")
+        if runtime.is_current_venv_valid():
+            # Current environment has correct venv installed so use that
+            runtime.run_entrypoint("build")
+
+        else:
+            runtime.create_runtime_env()
+            runtime.dispatch_entrypoint("build")
 
 
 @run_cmd.command("install")
@@ -94,7 +100,7 @@ def install_cmd(ctx, path):
     runtime = ImporterPackageRuntime(None, None)
     runtime.load_local_compute_package(path)
     try:
-        runtime.update_runtime_env()
+        runtime.update_current_runtime_env()
     except Exception as e:
         click.secho(f"An error occurred: {e}", fg="red")
         exit(-1)

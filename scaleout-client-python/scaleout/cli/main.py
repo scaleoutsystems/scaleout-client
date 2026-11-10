@@ -95,13 +95,13 @@ def login(ctx, instance_url):
             sys.exit(1)
 
         if status["status"] == "done":
-            access_token = status["access_token"]
+            refresh_token = status.get("refresh_token") or status["access_token"]
             host = status.get("api_url", instance_url)
 
-            set_context(host=host, token=access_token)
+            set_context(host=host, token=refresh_token)
 
             click.echo(f"✅ Logged in successfully to {host}")
-            click.echo("🔐 Access token stored securely.")
+            click.echo("🔐 Refresh token stored. Access tokens will be managed automatically.")
             return
 
 

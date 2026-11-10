@@ -306,7 +306,7 @@ class TestTokenManager(unittest.TestCase):
             access_token=self.access_token,
             refresh_token=self.refresh_token,
             token_endpoint=self.token_endpoint,
-            expires_in=20
+            expires_in=-1  # already expired, so there is no valid token to fall back to
         )
         
         with self.assertRaises(RuntimeError) as context:

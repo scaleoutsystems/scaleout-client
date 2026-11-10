@@ -6,10 +6,11 @@ from pathlib import Path
 import traceback
 from typing import Optional
 
-from scaleoututil.config import SCALEOUT_ARCHIVE_DIR, SCALEOUT_PACKAGE_EXTRACT_DIR
+from scaleoututil.config import SCALEOUT_ARCHIVE_DIR, SCALEOUT_PACKAGE_EXTRACT_DIR, SCALEOUT_VENV_DIR
 from scaleoututil.logging import ScaleoutLogger
 from scaleout.client.package_runtime import PackageRuntime
 from scaleoututil.utils.environment import PythonEnv
+from scaleoututil.utils.process import _exec_cmd, _join_commands
 
 # Default timeout for requests
 REQUEST_TIMEOUT = 10  # seconds
@@ -38,12 +39,19 @@ class ImporterPackageRuntime(PackageRuntime):
         super().__init__(package_path, archive_path)
         self.python_env: Optional[PythonEnv] = None
         self.requires_restart = False
+        self._initialized = False
 
     @property
     def active_env_path(self):
         return sys.prefix
 
-    def _init_runtime(self):
+    @property
+    def has_configuration(self):
+        if self._initialized:
+            return self.python_env is not None
+        return False
+
+    def init_runtime(self):
         """Initialize the Python environment."""
         if self.config is None:
             ScaleoutLogger().error("Package runtime is not loaded.")
@@ -54,8 +62,6 @@ class ImporterPackageRuntime(PackageRuntime):
                 python_env_yaml_path = Path(self._target_path).joinpath(python_env_yaml_path)
                 ScaleoutLogger().info(f"Reading environment configuration from: {python_env_yaml_path}")
                 self.python_env = PythonEnv.from_yaml(python_env_yaml_path)
-                self.python_env.remove_scaleoutdependency()
-                self.python_env.set_path(self.active_env_path)
             else:
                 ScaleoutLogger().info("No environment configuration specified in config")
                 self.python_env = None
@@ -63,50 +69,61 @@ class ImporterPackageRuntime(PackageRuntime):
             ScaleoutLogger().error(f"Error initializing environment configuration: {e}")
             self.python_env = None
             return False
+        self._initialized = True
         return True
 
-    def update_runtime_env(self):
-        if "python_env" not in self.config:
-            ScaleoutLogger().error("Python environment is not specified in the package configuration. Package runtime cannot be managed.")
-            raise RuntimeError("Python environment is not specified in the package configuration. Package runtime cannot be managed.")
+    def update_current_runtime_env(self):
+        if not self._initialized:
+            if not self.init_runtime():
+                ScaleoutLogger().error("Failed to initialize environment configuration")
+                raise RuntimeError("Failed to initialize environment configuration")
+        if self.python_env is None:
+            ScaleoutLogger().info("No environment configuration")
         else:
-            if not self._init_runtime():
-                ScaleoutLogger().error("Failed to initialize the managed environment.")
-                raise RuntimeError("Failed to initialize the managed environment.")
-            if self.python_env is None:
-                ScaleoutLogger().info("No managed environment specified, running in current environment. Managed environment flag will be ignored.")
-            else:
-                if not self._verify_active_environment():
-                    ScaleoutLogger().error("Active environment cannot be managed: {}".format(self.active_env_path))
-                    raise RuntimeError("Active environment cannot be managed.")
+            # Set current venv as target
+            ScaleoutLogger().info("Using venv at: " + self.active_env_path)
+            self.python_env.set_path(self.active_env_path)
 
-                if not self._check_and_install_runtime_environment():
-                    ScaleoutLogger().error("Failed to verify or install the managed environment.")
-                    raise RuntimeError("Failed to verify or install the managed environment.")
+            if not self._check_and_install_runtime_environment():
+                ScaleoutLogger().error("Failed to verify or install the managed environment.")
+                raise RuntimeError("Failed to verify or install the managed environment.")
 
-    def _verify_active_environment(self) -> bool:
-        """Verify the Python environment."""
-        if self.active_env_path is None or not self.active_env_path:
-            ScaleoutLogger().error("A managed environment requires a virtual environment to be active.")
+    def create_runtime_env(self) -> bool:
+        if not self._initialized:
+            if not self.init_runtime():
+                ScaleoutLogger().error("Failed to initialize environment configuration")
+                raise RuntimeError("Failed to initialize environment configuration")
+        if self.python_env is None:
+            ScaleoutLogger().info("No environment configuration")
             return False
-        env_path = self.active_env_path
-        ScaleoutLogger().info(f"Virtual environment detected at: {env_path}")
-        if Path(env_path) != Path(self.python_env.path):
-            ScaleoutLogger().warning(f"Virtual environment path {env_path} does not match the expected path {self.python_env.path}.")
-            return False
-        return True
+        else:
+            self.python_env.set_base_path(Path(os.getcwd()) / SCALEOUT_VENV_DIR)
+            if self.python_env.verify_installed_env():
+                if Path(self.active_env_path) == self.python_env.path:
+                    return True
+                else:
+                    ScaleoutLogger().info(
+                        f"Current interpreter {self.active_env_path} and requested interpreter {self.python_env.path} does not match, requires restart"
+                    )
+                    self.requires_restart = True
+                    return True
+            self.python_env.create_virtualenv()
+            if not self.python_env.verify_installed_env():
+                ScaleoutLogger().error("Could not verify the installed environment")
+                raise RuntimeError("Could not verify the installed environment")
+            if not self.python_env.validate_scaleout_install():
+                ScaleoutLogger().error("Failed to run scaleout in the created environment")
+                raise RuntimeError("Failed to run scaleout in the created environment")
+            self.requires_restart = True
+            return True
+
+    def is_current_venv_valid(self):
+        ScaleoutLogger().info(Path(self.active_env_path))
+
+        return self.python_env.verify_installed_env(Path(self.active_env_path))
 
     def _check_and_install_runtime_environment(self) -> bool:
         """Verify that the environment is set up correctly."""
-        if self.config is None:
-            ScaleoutLogger().error("Package runtime is not loaded.")
-            return False
-        if not self.active_env_path:
-            ScaleoutLogger().error("No virtual environment specified, cannot initialize environment.")
-            return False
-        if self.python_env is None:
-            ScaleoutLogger().error("No environment specified in config")
-            return False
         try:
             if self.python_env.verify_installed_env():
                 ScaleoutLogger().info("Current environment is up to date")
@@ -128,12 +145,6 @@ class ImporterPackageRuntime(PackageRuntime):
             ScaleoutLogger().info("Python environment is already up to date")
             return False
         else:
-            if not self.active_env_path:
-                ScaleoutLogger().error("No virtual environment specified, cannot update the environment.")
-                raise RuntimeError("No virtual environment specified, cannot update the environment.")
-            if not os.path.abspath(self.active_env_path).startswith(os.path.abspath(os.getcwd())):
-                ScaleoutLogger().error("The specified virtual environment must reside inside the current working directory.")
-                raise RuntimeError("The specified virtual environment must reside inside the current working directory.")
             self.python_env.install_into_current_env(capture_output=True)
             if not self.python_env.verify_installed_env():
                 ScaleoutLogger().error(f"Python environment at {self.python_env.path} could not be verified after installation.")
@@ -185,6 +196,73 @@ class ImporterPackageRuntime(PackageRuntime):
             sys.path = original_sys_path
 
         return True
+
+    def dispatch_entrypoint(self, entrypoint: str, extra_env=None, capture_output=False, stream_output=False) -> bool:
+        """Dispatch a specified entrypoint in a new process inside the managed environment."""
+        if self.config is None:
+            ScaleoutLogger().error("Package runtime is not initialized.")
+            return False
+
+        entrypoints = self.config.get("entry_points")
+        if entrypoints:
+            entrypoint_py = entrypoints.get(entrypoint)
+        else:
+            entrypoint_py = None
+        if not entrypoint_py:
+            ScaleoutLogger().error(f"No '{entrypoint}' entrypoint defined in the configuration.")
+            return False
+
+        if not Path(self._target_path).joinpath(entrypoint_py).exists():
+            ScaleoutLogger().error(f"Entrypoint script {entrypoint_py} not found in the package directory.")
+            return False
+
+        if self.python_env is None:
+            ScaleoutLogger().error("No managed environment is configured; cannot dispatch entrypoint.")
+            return False
+
+        entrypoint_module = Path(entrypoint_py).stem
+        ScaleoutLogger().info(f"Dispatching entrypoint '{entrypoint}' from module: {entrypoint_module}")
+
+        python_code = f"import sys; sys.path.insert(0, {self._target_path!r}); import {entrypoint_module}; getattr({entrypoint_module}, {entrypoint!r})()"
+        command = ["python", "-c", python_code]
+
+        try:
+            self._dispatch_command(
+                command,
+                extra_env=extra_env,
+                capture_output=capture_output,
+                stream_output=stream_output,
+            )
+        except Exception as e:
+            ScaleoutLogger().error(f"Error dispatching entrypoint '{entrypoint}': {e}")
+            return False
+        return True
+
+    def _dispatch_command(self, command: list, capture_output=False, extra_env=None, synchronous=True, stream_output=False):
+        """Run a command.
+
+        :param cmd_type: The command type.
+        :type cmd_type: str
+        :return:
+        """
+        try:
+            # Join entry point and arguments into a single command as a string
+            cmd = _join_commands(self.python_env.get_activate_cmd(), command)
+
+            ScaleoutLogger().info("Running command: {}".format(cmd))
+            _exec_cmd(
+                cmd,
+                throw_on_error=True,
+                extra_env=extra_env,
+                capture_output=capture_output,
+                synchronous=synchronous,
+                stream_output=stream_output,
+            )
+
+            ScaleoutLogger().info("Done executing command")
+        except Exception:
+            ScaleoutLogger().error("Command exection failed")
+            raise
 
     def run_startup(self, edge_client):
         """Run the client startup script."""
