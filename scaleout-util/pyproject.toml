@@ -9,7 +9,9 @@ license = "Apache-2.0"
 dependencies = [
     "grpcio==1.85.0",
     "protobuf>=6.33.5,<7",
-    "numpy>=2.5.3,<2.6", # 2.5 requires python 3.12
+    # numpy 2.5 requires Python 3.12, so Python 3.11 gets the 2.2 to 2.4 releases.
+    "numpy>=2.5.3,<2.6; python_version >= '3.12'",
+    "numpy>=2.2.6,<2.5; python_version < '3.12'",
     "requests>=2.31",
     "urllib3>=2.6.0",
     "pyjwt>=2.15.1",
