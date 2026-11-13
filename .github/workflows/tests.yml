@@ -1,0 +1,52 @@
+# Runs the unit tests of scaleoututil and scaleout on every Python version
+# the packages support. Each version installs both packages with pip from
+# this checkout, the way users install them, so a dependency that does not
+# install on one version fails that version's job.
+#
+# This file lives only in this repository. The export from the scaleout
+# repository replaces scaleout-client-python/ and scaleout-util/ and leaves
+# .github/ as it is.
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'scaleout-*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      # Every version reports its own result.
+      fail-fast: false
+      matrix:
+        # The versions in requires-python of both packages.
+        python-version: ['3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Installs both packages from this checkout in one step, so the local
+      # scaleoututil meets scaleout's pin on it.
+      - name: Install the packages
+        run: python -m pip install './scaleout-util[test]' './scaleout-client-python[test]'
+
+      - name: Test scaleoututil
+        working-directory: scaleout-util
+        run: python -m pytest
+
+      - name: Test scaleout
+        working-directory: scaleout-client-python
+        run: python -m pytest
